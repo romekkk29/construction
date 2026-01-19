@@ -1,0 +1,7 @@
+{
+  "name": "LogiCostApp",
+  "description": "Comprehensive construction logistics and budget management system with AI-powered data extraction and NIO tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
