@@ -1,21 +1,16 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const app = express();
 const PORT = 4000;
-
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'dist')));
-
-// SPA fallback
-app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// SPA fallback (React Router)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
-
 app.listen(PORT, () => {
-  console.log(`🚀 Frontend running on port ${PORT}`);
+    console.log(`🚀 Frontend running on port ${PORT}`);
 });
