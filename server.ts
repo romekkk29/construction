@@ -8,12 +8,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 4000;
 
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, '../dist')));
 
-// SPA fallback
-app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// SPA fallback (Express 5 compatible)
+app.get(/.*/, (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
