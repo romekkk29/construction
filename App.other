@@ -28,8 +28,8 @@ import {
   Hash,
   ArrowLeft
 } from 'lucide-react';
-import { ViewType, Project, Supply, NIO, ProjectStock, NIOStatus, CostAccount } from './types';
-import { extractBudgetData, extractSupplyData, FileData } from './services/geminiService';
+import { ViewType, Project, Supply, NIO, ProjectStock, NIOStatus, CostAccount } from './src/types';
+import { extractBudgetData, extractSupplyData, FileData } from './src/services/geminiService';
 import { 
   BarChart, 
   Bar, 
@@ -1150,7 +1150,7 @@ export default function App() {
         className="hidden" 
         accept=".pdf,.xlsx,.xls,image/*"
         onChange={handleFileChange}
-      />
+      /> 
 
       <div className="flex h-[calc(100vh-4rem)]">
         <aside className="hidden md:flex w-72 flex-col border-r bg-white p-4 gap-2">

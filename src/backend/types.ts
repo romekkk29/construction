@@ -3,26 +3,52 @@ export type ProjectId = string;
 export type SupplyId = string;
 export type NIOId = string;
 
-export interface CostAccount {
-  id: string;
+
+export interface User {
+  id: number;
   name: string;
-  detail: string;
-  budgeted: number;
-  spent: number;
+  lastName: string;
+  rol: Role;
+  permissionsIds?: number[];
+  isEnable?:boolean;
+  email: string;
+  password?: string;
+}
+export interface Role {
+  id: number;
+  name: string;
+}
+export interface Permission {
+  id: number;
+  name: string;
 }
 
 export interface Project {
-  id: ProjectId;
+  id: number;
   name: string;
   address: string;
   startDate: string;
   durationDays: number;
-  projectManager: string;
-  generalManager: string;
+  projectManager: number;
+  generalManager: number;
   client: string;
   inspector: string;
-  accounts: CostAccount[];
+  accounts?: CostAccount[];
   stockBalance: number;
+  isEnable?:boolean;
+}
+
+export interface CostAccount {
+  id: number;
+  projectId: number;
+  name?: string;
+  detail: string;
+  budgeted: number;
+  spent: number;
+  accountNumber?: string;
+  incidence?: number;
+  isCreatedYet?:boolean;
+  isEnable?:boolean;
 }
 
 export interface Supply {

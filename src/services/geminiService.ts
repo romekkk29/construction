@@ -7,7 +7,7 @@ export interface FileData {
   mimeType: string;
 }
 
-export const extractBudgetData = async (file?: FileData) => {
+export const extractBudgetData = async (file?: FileData | string) => {
   // Initialize GoogleGenAI right before use to ensure most up-to-date configuration
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Analiza este documento y extrae la estructura de costos de la obra. 
@@ -20,7 +20,22 @@ export const extractBudgetData = async (file?: FileData) => {
   - Reconoce símbolos de moneda ($), puntos y comas.
   - El resultado final debe ser un número puro para el costo.
   - Devuelve exclusivamente un JSON array de objetos.`;
-
+  const prompt2 = `Actúa como un experto en presupuestos de construcción y auditoría de costos. 
+  Analiza la información proporcionada (ya sea un PDF o datos de una planilla Excel) y extrae TODA la estructura de costos.
+  
+  REGLAS DE EXTRACCIÓN:
+  1. Identifica "accountNumber": Códigos de cuenta o índices (ej: 1.1, 01.A, etc).
+  2. Identifica "name": Nombre del rubro o cuenta principal.
+  3. Identifica "detail": Especificaciones técnicas o descripción del item.
+  4. Identifica "cost": El monto total presupuestado. Limpia símbolos de moneda y separadores de miles.
+  5. Identifica "incidence": Porcentaje de incidencia (%) de la cuenta. Si no está, calcúlalo como (costo_item / costo_total) * 100.
+  
+  RESTRICCIONES:
+  - Solo devuelve un JSON array. No incluyas explicaciones.
+  - Asegúrate de no duplicar items si hay subtotales y totales. Prioriza los items de menor nivel (las cuentas reales de gasto).
+  
+  Devuelve exclusivamente un JSON array de objetos con este esquema:
+  [{"accountNumber": string, "name": string, "detail": string, "cost": number, "incidence": number}]`;
   const parts: any[] = [{ text: prompt }];
   if (file) {
     parts.push({ inlineData: file });
@@ -28,7 +43,7 @@ export const extractBudgetData = async (file?: FileData) => {
 
   const response = await ai.models.generateContent({
     // Using gemini-3-pro-preview for complex document data extraction
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: { parts },
     config: {
       responseMimeType: "application/json",
@@ -46,7 +61,7 @@ export const extractBudgetData = async (file?: FileData) => {
       }
     }
   });
-
+  console.log(response)
   return JSON.parse(response.text || '[]');
 };
 
