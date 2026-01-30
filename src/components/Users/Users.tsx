@@ -100,91 +100,96 @@ export default function UsersComponent() {
                 ></ConfirmDeleteModal>:null     
               }
       {/* Tabla de Usuarios */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Nombre
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Apellido
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Email
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Rol
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {user.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {user.lastName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {user.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {user.rol.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center flex justify-center gap-4">
-                  <button
-                    onClick={() => {
-                      setEditingUser(user);
-                      setIsUserModalOpen(true);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 transition-colors"
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-8 overflow-hidden">
+          <div className="overflow-x-auto bg-white rounded-xl shadow-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => {setEditingUser(user);setIsUserDeleteModalOpen(true)}}
-                    className="text-red-600 hover:text-red-800 transition-colors"
+                    Nombre
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    Apellido
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Email
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Rol
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.lastName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.rol.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center flex justify-center gap-4">
+                      <button
+                        onClick={() => {
+                          setEditingUser(user);
+                          setIsUserModalOpen(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => {setEditingUser(user);setIsUserDeleteModalOpen(true)}}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
 
-            {users.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-4 text-center text-gray-400 text-sm"
-                >
-                  No hay usuarios registrados
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-    </div>
+                {users.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-4 text-center text-gray-400 text-sm"
+                    >
+                      No hay usuarios registrados
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+              {/* Indicador visual opcional para móvil */}
+            <div className="md:hidden bg-slate-50 text-[10px] text-slate-400 text-center py-1 border-t">
+                ← Desliza lateralmente para ver más →
+            </div>
+            </div>
+        </div>
   );
 }

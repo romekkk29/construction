@@ -652,66 +652,71 @@ export default function ObraComponent() {
                                     </div>
                                 </div>
 
-                                {/* Tabla de Cuentas */}
-                                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-8">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-slate-50 border-b">
-                                            <tr>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Cuenta</th>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Detalle</th>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Presupuesto</th>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Gastado</th>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Saldo</th>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">% Incidencia</th>
-                                                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {(() => {
-                                                const totalBudget = selectedProject.accounts?.reduce((sum, acc) => sum + acc.budgeted, 0)??0;
-                                                return selectedProject.accounts?.map(acc => {
-                                                    const incidence = (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
-                                                    const isCreated = acc.isCreatedYet !== false; // True o undefined = visible
+                                    {/* Tabla de Cuentas */}
+                                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-8 overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left min-w-[800px]">
+                                                <thead className="bg-slate-50 border-b">
+                                                    <tr>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Cuenta</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Detalle</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Presupuesto</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Gastado</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Saldo</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">% Incidencia</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {(() => {
+                                                        const totalBudget = selectedProject.accounts?.reduce((sum, acc) => sum + acc.budgeted, 0) ?? 0;
+                                                        return selectedProject.accounts?.map(acc => {
+                                                            const incidence = (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
+                                                            const isCreated = acc.isCreatedYet !== false;
 
-                                                    return (
-                                                        <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
-                                                            <td className="px-6 py-4 font-medium text-slate-800">{acc.name}</td>
-                                                            <td className="px-6 py-4 text-slate-600 text-sm">{acc.detail}</td>
-                                                            <td className="px-6 py-4 text-slate-800">${acc.budgeted.toLocaleString()}</td>
-                                                            <td className="px-6 py-4 text-red-600 font-medium">${acc.spent.toLocaleString()}</td>
-                                                            <td className="px-6 py-4 text-emerald-600 font-bold">${(acc.budgeted - acc.spent).toLocaleString()}</td>
-                                                            <td className="px-6 py-4 text-right">
-                                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${acc.incidence !== undefined ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
-                                                                    {incidence.toFixed(2)}%
-                                                                    {acc.incidence !== undefined && <BrainCircuit className="inline-block h-3 w-3 ml-1" title="Analizado por IA" />}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <div className="flex justify-center items-center gap-2">
-                                                                    {isCreated ? (
-                                                                        <>
-                                                                            <button onClick={()=>{setEditingCostAccount(acc);setIsCostAccountModalOpen(true)}} title="Editar cuenta" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                                                                <Edit3 className="h-4 w-4" />
-                                                                            </button>
-                                                                            <button onClick={()=>{setSelectedCostAccount(acc);setIsCostAccountDeleteModalOpen(true)}} title="Eliminar cuenta" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                                                <Trash2 className="h-4 w-4" />
-                                                                            </button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <div title="Sincronizando..." className="p-1.5 text-amber-500 animate-pulse">
-                                                                            <Clock className="h-5 w-5" />
+                                                            return (
+                                                                <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
+                                                                    <td className="px-6 py-4 font-medium text-slate-800">{acc.name}</td>
+                                                                    <td className="px-6 py-4 text-slate-600 text-sm">{acc.detail}</td>
+                                                                    <td className="px-6 py-4 text-slate-800">${acc.budgeted.toLocaleString()}</td>
+                                                                    <td className="px-6 py-4 text-red-600 font-medium">${acc.spent.toLocaleString()}</td>
+                                                                    <td className="px-6 py-4 text-emerald-600 font-bold">${(acc.budgeted - acc.spent).toLocaleString()}</td>
+                                                                    <td className="px-6 py-4 text-right">
+                                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${acc.incidence !== undefined ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
+                                                                            {incidence.toFixed(2)}%
+                                                                            {acc.incidence !== undefined && <BrainCircuit className="inline-block h-3 w-3 ml-1" title="Analizado por IA" />}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-6 py-4">
+                                                                        <div className="flex justify-center items-center gap-2">
+                                                                            {isCreated ? (
+                                                                                <>
+                                                                                    <button onClick={() => { setEditingCostAccount(acc); setIsCostAccountModalOpen(true) }} title="Editar cuenta" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                                                        <Edit3 className="h-4 w-4" />
+                                                                                    </button>
+                                                                                    <button onClick={() => { setSelectedCostAccount(acc); setIsCostAccountDeleteModalOpen(true) }} title="Eliminar cuenta" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                                                        <Trash2 className="h-4 w-4" />
+                                                                                    </button>
+                                                                                </>
+                                                                            ) : (
+                                                                                <div title="Sincronizando..." className="p-1.5 text-amber-500 animate-pulse">
+                                                                                    <Clock className="h-5 w-5" />
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                });
-                                            })()}
-                                        </tbody>
-                                    </table>
-                                </div>
-
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        });
+                                                    })()}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {/* Indicador visual opcional para móvil */}
+                                        <div className="md:hidden bg-slate-50 text-[10px] text-slate-400 text-center py-1 border-t">
+                                            ← Desliza lateralmente para ver más →
+                                        </div>
+                                    </div>
                                 {/* Botón Guardar Cambios al final */}
                                 <div className="flex gap-3 justify-end pb-12">
                                     <button 
