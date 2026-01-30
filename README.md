@@ -46,6 +46,9 @@ npm run build
 # Lánzalo con PM2 apuntando a la carpeta dist
 pm2 start serve --name "logicost-app" -- -s dist -l 4000
 
+sudo pm2 start serve --name "apolo" -- -s dist -l 4001
+
+
 
 # Crea el enlace simbólico (si es un archivo nuevo)
 sudo ln -s /etc/nginx/sites-available/logicost /etc/nginx/sites-enabled/
@@ -69,7 +72,7 @@ sudo apt update
 sudo apt install postgresql postgresql-contrib -y
 
 sudo -i -u postgres psql
-
+sudo -i -u postgres psql -d ApoloSur
 3. Crear Base de Datos y Usuario
 Dentro de la consola de Postgres (psql), ejecuta los siguientes comandos. Importante: Usa los mismos datos que tienes en tu archivo .env para que no tengas que cambiar la lógica de tu app.
 
@@ -85,6 +88,17 @@ GRANT ALL PRIVILEGES ON DATABASE "ApoloSur" TO apolo;
 
 -- Salir de la consola
 \q
+
+
+-- Dar permisos sobre el esquema público al usuario postgres
+GRANT ALL ON SCHEMA public TO apolo;
+
+-- (Opcional) Asegurar que el usuario sea el dueño de la base de datos
+ALTER DATABASE "ApoloSur" OWNER TO apolo;
+
+-- Salir
+\q
+
 4. Configurar el acceso remoto (Opcional pero común)
 Si tu servidor de Node.js está en la misma máquina que el Postgres de Ubuntu, puedes saltar al paso 5. Si te vas a conectar desde afuera, debes habilitar la escucha:
 

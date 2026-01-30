@@ -48,6 +48,7 @@ import {
   Cell
 } from 'recharts';
 import ObraComponent from './components/Obra/Obra';
+import SupliesComponent from './components/InsumoServicio/Insumos';
 
 // --- Utility Functions ---
 const fileToBase64 = (file: File): Promise<FileData> => {
@@ -351,10 +352,14 @@ export default function App() {
   const renderUsers = () => (
     <UsersComponent></UsersComponent>
   )
+  const renderSupplies = () => (
+    <SupliesComponent></SupliesComponent>
+  )
   const renderCurrentView = () => {
     switch (activeView) {
       case 'dashboard': return renderDashboard();
       case 'projects': return renderProjects();
+      case 'supplies': return renderSupplies();
       case 'users': return renderUsers();
       default: return renderDashboard();
     }

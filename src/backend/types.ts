@@ -44,7 +44,7 @@ export interface CostAccount {
   name?: string;
   detail: string;
   budgeted: number;
-  spent: number;
+  spent?: number;
   accountNumber?: string;
   incidence?: number;
   isCreatedYet?:boolean;
@@ -52,7 +52,7 @@ export interface CostAccount {
 }
 
 export interface Supply {
-  id: SupplyId;
+  id?: number;
   code: string;
   detail: string;
   bestPrice?: number;

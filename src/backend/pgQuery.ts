@@ -134,7 +134,7 @@ export const pgQuery = async (
             c.spent,
             c.is_enable
           FROM cost_accounts c
-          WHERE c.project_id = $1
+          WHERE c.project_id = $1 and c.is_enable = TRUE
           `,
           [data.id]
         );

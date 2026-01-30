@@ -66,7 +66,7 @@ export const apiClient = {
       return res.json();
     },
 
-    delete: async (id: string): Promise<{ message: string }> => {
+    delete: async (id: number): Promise<{ message: string }> => {
       const res = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
       });

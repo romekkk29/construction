@@ -1,129 +1,121 @@
 import React from "react";
 import Modal from "../Styles/Modal";
-import { Role, User } from "./../../backend/types";
+import { Project, Supply, User } from "./../../backend/types";
 
-type UserFormModalProps = {
+type InsumoFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (user: User) => void;
-  initialData?: User;
+  onSubmit: (project: Supply) => void;
+  initialData?: Supply;
   mode: "create" | "edit";
-  roles: Role[];
 };
 
-export default function UserFormModal({
+export default function InsumoFormModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
   mode,
-  roles
-}: UserFormModalProps) {
+}: InsumoFormModalProps) {
   const isEdit = mode === "edit";
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const roleId = Number(formData.get("rolId"));
-    const role = roles.find(r => r.id === roleId);
-
-    if (!role) {
-      alert("Rol inválido");
-      return;
-    }
-
-    const user: User = {
-      id: initialData?.id ?? 1,
-      name: formData.get("name") as string,
-      lastName: formData.get("lastName") as string,
-      email: formData.get("email") as string,
-      rol: {
-        id: role.id,
-        name: role.name
-      }
+    const supply: Supply = {
+      id: initialData?.id ?? 13,
+      code: formData.get("code") as string,
+      detail: formData.get("detail") as string,
+      unit: formData.get("unit") as string,
+      bestPrice: Number(formData.get("bestPrice")),
+      bestSupplier: formData.get("bestSupplier") as string
     };
 
-    onSubmit(user);
+    onSubmit(supply);
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? "Editar Usuario" : "Nuevo Usuario"}
+      title={isEdit ? "Editar Obra" : "Nueva Obra"}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
-        {/* Nombre + Apellido */}
+        {/* Nombre + Dirección */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Nombre
+              Codigo insumo
             </label>
             <input
-              name="name"
+              name="code"
               required
-              defaultValue={initialData?.name}
+              defaultValue={initialData?.code}
               type="text"
-              placeholder="Ej: Pepe"
+              placeholder="Ej: 001"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Apellido
+              Detalle
             </label>
             <input
-              name="lastName"
+              name="detail"
               required
-              defaultValue={initialData?.lastName}
+              defaultValue={initialData?.detail}
               type="text"
-              placeholder="Ej: Suarez"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
-        {/* Email + Rol */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Fechas y cliente */}
+        <div className="grid grid-cols-3 gap-4">
+
+
+
+
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Email
+              Unidad
             </label>
             <input
-              name="email"
+              name="unit"
               required
-              defaultValue={initialData?.email}
+              defaultValue={initialData?.unit}
               type="text"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
+        </div>
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Rol
+              Mejor Precio
             </label>
-            <select
-              name="rolId"
+            <input
+              name="bestPrice"
               required
-              defaultValue={initialData?.rol?.id ?? ""}
-              className="
-                w-full p-2 border rounded-xl outline-none bg-white
-                focus:ring-2 focus:ring-blue-500
-              "
-            >
-              <option value="" disabled>
-                Seleccione un rol
-              </option>
-
-              {roles.map(role => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+              type="number"
+              defaultValue={initialData?.bestPrice}
+              className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
+        {/* Inspector */}
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-500 uppercase">
+            Mejor Proveedor
+          </label>
+          <input
+            name="bestSupplier"
+            required
+            defaultValue={initialData?.bestSupplier}
+            type="text"
+            placeholder="Nombre del Inspector"
+            className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         {/* Submit */}
@@ -134,7 +126,7 @@ export default function UserFormModal({
             shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors
           "
         >
-          {isEdit ? "Guardar Cambios" : "Guardar Usuario"}
+          {isEdit ? "Guardar Cambios" : "Guardar Obra"}
         </button>
       </form>
     </Modal>

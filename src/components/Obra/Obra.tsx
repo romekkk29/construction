@@ -1,6 +1,7 @@
 import React, {useState,useEffect,useRef} from "react";
 
 import ProjectFormModal from "./ObraFormModal";
+import CostFormModal from "./CostFormModal"
 import { Role, Project,User,CostAccount} from "@/src/backend/types";
 import { apiClient } from './../../api';
 import { Plus, Pencil,X, Trash2,Loader2,BrainCircuit, Save,Edit3, Clock } from "lucide-react";
@@ -44,9 +45,14 @@ const parseExcelToCSV = (file: File): Promise<string> => {
 export default function ObraComponent() {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isProjectDeleteModalOpen, setIsProjectDeleteModalOpen] = useState(false);
+    const [isCostAccountModalOpen, setIsCostAccountModalOpen] = useState(false);
+    const [isCostAccountDeleteModalOpen, setIsCostAccountDeleteModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [editingCostAccount, setEditingCostAccount] = useState<Project | null>(null);
+
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProject,setSelectedProject ] = useState<Project | null>(null);
+    const [selectedCostAccount,setSelectedCostAccount ] = useState<CostAccount | null>(null);
     const [isAIProcessing, setIsAIProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [currentUploadType, setCurrentUploadType] = useState<{type: 'budget' | 'supplies', id?: string} | null>(null);
@@ -72,7 +78,7 @@ export default function ObraComponent() {
       if(payload.length<1){
         return alert("No hay data")
       }
-      console.log(payload)
+      setLoading(true)
       const response = await apiClient.costAccounts.create(payload);
       console.log(response)
         const newAccounts = selectedProject.accounts.map(obj => ({
@@ -80,8 +86,9 @@ export default function ObraComponent() {
         isCreatedYet: true
         }));
      setSelectedProject((prevState => ({...prevState, accounts:newAccounts})));
-
+        setLoading(false)
     } catch (err: any) {
+        setLoading(false)
       console.log(err.message || 'Error al crear usuario');
     }
   };
@@ -95,6 +102,37 @@ export default function ObraComponent() {
       alert(err.message || 'Error al crear usuario');
     }
   };
+  const handleCreateCostAccount = async (project: CostAccount) => {
+
+    project.projectId=selectedProject.id
+    project.spent=0
+    //toda la logica
+    try {
+      const response = await apiClient.costAccounts.create([project]);
+      let newIdProject={...project,id:response[0].id}
+
+        setProjects(prevProjects => 
+                        prevProjects.map(project => {
+                            // Si no es el proyecto que buscamos, lo devolvemos tal cual
+                            if (project.id !== selectedProject.id) {
+                                return project;
+                            }
+
+                            // Si es el proyecto, creamos una copia y filtramos sus cuentas
+                            return {
+                                ...project,
+                                accounts:  [...project.accounts,newIdProject]
+                               
+                            };
+                        })
+                    );      
+      setSelectedProject((prevState => ({...prevState, accounts:[...prevState.accounts,newIdProject]})));
+
+      setIsCostAccountModalOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Error al crear usuario');
+    }
+  };
     const handleUpdateProject = async (project: Project) => {
         const updated = await apiClient.projects.update(project);
 
@@ -104,6 +142,28 @@ export default function ObraComponent() {
 
         setEditingProject(null);
         setIsProjectModalOpen(false);
+    };
+    const handleUpdateCostAccount = async (costAccount: CostAccount) => {
+        //falta todo
+        const updated = await apiClient.costAccounts.update(costAccount);
+        console.log(updated)
+        setProjects(prevProjects => 
+                        prevProjects.map(project => {
+                            // Si no es el proyecto que buscamos, lo devolvemos tal cual
+                            if (project.id !== selectedProject.id) {
+                                return project;
+                            }
+
+                            // Si es el proyecto, creamos una copia y filtramos sus cuentas
+                            return {
+                                ...project,
+                                accounts: project.accounts?.map(p => (p.id === costAccount.id ? updated : p))
+                            };
+                        })
+                    );
+        setSelectedProject((prevState => ({...prevState, accounts:prevState.accounts?.map(p => (p.id === costAccount.id ? updated : p))})));
+        setEditingCostAccount(null);
+        setIsCostAccountModalOpen(false);
     };
     const handleDeleteProject = async (id: string) => {
         setLoading(true)
@@ -119,6 +179,33 @@ export default function ObraComponent() {
         setIsProjectDeleteModalOpen(false)
         setIsProjectModalOpen(false);
         setSelectedProject(null)
+    };
+    const handleDeleteCostAccount = async (id: string) => {
+        setLoading(true)
+        const deleteResponse = await apiClient.costAccounts.delete(id);
+        if(deleteResponse.message){
+            setProjects(prevProjects => 
+                        prevProjects.map(project => {
+                            // Si no es el proyecto que buscamos, lo devolvemos tal cual
+                            if (project.id !== selectedProject.id) {
+                                return project;
+                            }
+
+                            // Si es el proyecto, creamos una copia y filtramos sus cuentas
+                            return {
+                                ...project,
+                                accounts: project.accounts?.filter(account => account.id !== id)
+                            };
+                        })
+                    );
+            setSelectedProject((prevState => ({...prevState, accounts:prevState.accounts?.filter(account => account.id !== id)})));
+        }
+        else{
+                alert("Error "+ deleteResponse)
+        }
+        setLoading(false)
+        setIsCostAccountDeleteModalOpen(false)
+        setSelectedCostAccount(null)
     };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -209,6 +296,18 @@ export default function ObraComponent() {
                 onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
                 />
                 <ConfirmDeleteModal
+                isOpen={isCostAccountDeleteModalOpen}
+                onClose={() => {
+                    setSelectedCostAccount(null)
+                    setIsCostAccountDeleteModalOpen(false);
+                }}
+                onConfirm={() => {
+                    handleDeleteCostAccount(selectedCostAccount?.id??"")
+                }}
+                itemName={" la cuenta costo "+selectedCostAccount?.name}
+                loading={loading}
+                ></ConfirmDeleteModal>    
+                <ConfirmDeleteModal
                 isOpen={isProjectDeleteModalOpen}
                 onClose={() => {
                     setSelectedProject(null)
@@ -219,7 +318,17 @@ export default function ObraComponent() {
                 }}
                 itemName={" la obra "+selectedProject?.name}
                 loading={loading}
-                ></ConfirmDeleteModal>    
+                ></ConfirmDeleteModal>
+                <CostFormModal
+                        isOpen={isCostAccountModalOpen}
+                        onClose={() => {
+                            setIsCostAccountModalOpen(false);
+                            setEditingCostAccount(null);
+                        }}
+                        mode={editingCostAccount ? "edit" : "create"}
+                        initialData={editingCostAccount ?? undefined}
+                        onSubmit={editingCostAccount ? handleUpdateCostAccount : handleCreateCostAccount}                
+                ></CostFormModal>
                 {/* Global Overlay for AI Processing */}
                 {isAIProcessing && (
                     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -368,7 +477,7 @@ export default function ObraComponent() {
                     </div>
 
                     {selectedProject && !isProjectDeleteModalOpen && (
-                        <div className="fixed inset-0 z-50 bg-white overflow-y-auto animate-in slide-in-from-right duration-300">
+                        <div className="fixed inset-0 z-40 bg-white overflow-y-auto animate-in slide-in-from-right duration-300">
                             <div className="max-w-7xl mx-auto p-6">
                                 <div className="flex flex-col mb-8 border-b pb-6 gap-6">
                                     {/* Título y acciones superiores */}
@@ -561,7 +670,7 @@ export default function ObraComponent() {
                                             {(() => {
                                                 const totalBudget = selectedProject.accounts?.reduce((sum, acc) => sum + acc.budgeted, 0)??0;
                                                 return selectedProject.accounts?.map(acc => {
-                                                    const incidence = acc.incidence !== undefined ? acc.incidence : (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
+                                                    const incidence = (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
                                                     const isCreated = acc.isCreatedYet !== false; // True o undefined = visible
 
                                                     return (
@@ -581,10 +690,10 @@ export default function ObraComponent() {
                                                                 <div className="flex justify-center items-center gap-2">
                                                                     {isCreated ? (
                                                                         <>
-                                                                            <button title="Editar cuenta" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                                            <button onClick={()=>{setEditingCostAccount(acc);setIsCostAccountModalOpen(true)}} title="Editar cuenta" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                                                                 <Edit3 className="h-4 w-4" />
                                                                             </button>
-                                                                            <button title="Eliminar cuenta" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                                            <button onClick={()=>{setSelectedCostAccount(acc);setIsCostAccountDeleteModalOpen(true)}} title="Eliminar cuenta" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                                                                                 <Trash2 className="h-4 w-4" />
                                                                             </button>
                                                                         </>
@@ -606,11 +715,18 @@ export default function ObraComponent() {
                                 {/* Botón Guardar Cambios al final */}
                                 <div className="flex gap-3 justify-end pb-12">
                                     <button 
-                                        onClick={() => {/* Lógica crear */}}
+                                        onClick={() => {setIsCostAccountModalOpen(true)}}
                                         className="bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 text-sm font-semibold"
                                     >
                                         <Plus className="h-4 w-4" /> Nueva Cuenta
                                     </button>
+                                    {loading?                                    <button 
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl flex items-center gap-2"
+                                        
+                                    >
+                                        <Save className="h-5 w-5" />
+                                        Cargando...
+                                    </button>:
                                     <button 
                                         className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl flex items-center gap-2"
                                         onClick={() => {handleInsertMany()}}
@@ -618,6 +734,7 @@ export default function ObraComponent() {
                                         <Save className="h-5 w-5" />
                                         Guardar Cambios del Proyecto
                                     </button>
+                                        }
                                 </div>
                             </div>
                         </div>

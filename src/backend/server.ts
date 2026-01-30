@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 4000;
+const PORT = 4001;
 
 /* ---------- MIDDLEWARES ---------- */
 app.use(express.json());
@@ -216,8 +216,7 @@ app.post('/api/costaccounts', asyncHandler(async (req, res) => {
     name: row.name,
     detail: row.detail,
     budgeted: row.budgeted,
-    spent: row.spent,
-    is_enable: row.isEnable
+    spent: row.spent
   }));
 
 
@@ -235,8 +234,7 @@ app.put('/api/costaccounts/:id', asyncHandler(async (req, res) => {
     name: costAccount.name,
     detail: costAccount.detail,
     budgeted: costAccount.budgeted,
-    spent: costAccount.spent,
-    is_enable: costAccount.isEnable
+    is_enable: true
   };
 
   const result = await pgQuery('cost_accounts', 'UPDATE', dbCost);
