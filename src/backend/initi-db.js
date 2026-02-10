@@ -32,7 +32,8 @@ async function setupDatabase() {
         DROP TABLE IF EXISTS project_stocks CASCADE;      
         DROP TABLE IF EXISTS roles CASCADE;       
         DROP TABLE IF EXISTS permisions CASCADE;     
-        DROP TABLE IF EXISTS users CASCADE;          
+        DROP TABLE IF EXISTS users CASCADE;
+        DROP TABLE IF EXISTS drivers CASCADE;          
       `);
       console.log('✓ Tablas eliminadas.');
     }

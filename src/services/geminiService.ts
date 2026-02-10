@@ -74,6 +74,17 @@ export const extractSupplyData = async (file?: FileData) => {
   2. Detalle/Descripción del insumo (ej. Bolsa de cemento x 50kg)
   3. Unidad de medida (ej. Bolsa, kg, m3, Global)
   
+  Ejemplo de unidades de medida: 
+  Detalle: cemento minetti x 50 kg -> Bolsa
+  Detalle: cal x 20 kg -> Bolsa
+  Detalle: arena x 6 -> m3
+  Detalle: ripio x 6 -> m3
+  Detalle: estabilizado x 6 -> m3
+  Detalle: arena x batea  -> m3
+  Detalle: ripio x batea -> m3
+  Detalle: hierro 8 mm -> barra
+  10 hierro 10 mm -> barra
+  
   Devuelve exclusivamente un JSON array de objetos.`;
 
   const parts: any[] = [{ text: prompt }];

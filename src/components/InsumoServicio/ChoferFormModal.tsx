@@ -1,71 +1,70 @@
 import React from "react";
 import Modal from "../Styles/Modal";
-import { Project, Supply, User } from "./../../backend/types";
+import { Driver, Project, Supply, User } from "./../../backend/types";
 
-type InsumoFormModalProps = {
+type DriverFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (project: Supply) => void;
-  initialData?: Supply;
+  onSubmit: (project: Driver) => void;
+  initialData?: Driver;
   mode: "create" | "edit";
 };
 
-export default function InsumoFormModal({
+export default function DriverFormModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
   mode,
-}: InsumoFormModalProps) {
+}: DriverFormModalProps) {
   const isEdit = mode === "edit";
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const supply: Supply = {
-      id: initialData?.id ?? 13,
-      code: formData.get("code") as string,
-      detail: formData.get("detail") as string,
-      unit: formData.get("unit") as string,
-      bestPrice: Number(formData.get("bestPrice")),
-      bestSupplier: formData.get("bestSupplier") as string
+    const driver: Driver = {
+      id: initialData?.id ?? 12,
+      name: formData.get("name") as string,
+      vehicle: formData.get("vehicle") as string,
+      phone: Number(formData.get("phone")),
     };
 
-    onSubmit(supply);
+    onSubmit(driver);
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? "Editar insumo o servicio" : "Nuevo insumo o servicio"}
+      title={isEdit ? "Editar chofer" : "Nuevo chofer"}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
         {/* Nombre + Dirección */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Codigo insumo
+              Nombre
             </label>
             <input
-              name="code"
+              name="name"
               required
-              defaultValue={initialData?.code}
+              defaultValue={initialData?.name}
               type="text"
-              placeholder="Ej: 001"
+              placeholder="Ej: Juan Alvarez"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Detalle
+              Vehiculo
             </label>
             <input
-              name="detail"
+              name="vehicle"
               required
-              defaultValue={initialData?.detail}
+              defaultValue={initialData?.vehicle}
+              placeholder="Ej: Camioneta"
               type="text"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -74,19 +73,16 @@ export default function InsumoFormModal({
 
         {/* Fechas y cliente */}
         <div className="grid grid-cols-3 gap-4">
-
-
-
-
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Unidad
+              Telefono
             </label>
             <input
-              name="unit"
+              name="phone"
               required
-              defaultValue={initialData?.unit}
-              type="text"
+              placeholder="2612175525"
+              defaultValue={initialData?.phone}
+              type="number"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -102,7 +98,7 @@ export default function InsumoFormModal({
             shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors
           "
         >
-          {isEdit ? "Guardar Cambios" : "Guardar Insumo"}
+          {isEdit ? "Guardar Cambios" : "Guardar Chofer"}
         </button>
       </form>
     </Modal>

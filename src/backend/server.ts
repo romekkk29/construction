@@ -1,11 +1,13 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
-
 import { pgQuery } from './pgQuery.js';
-import { Project, NIO, Supply, User, CostAccount } from './types.js';
-import { Console } from 'console';
+import { Project, NIO, Supply, User, CostAccount, Driver } from './types.js';
+import passport, { use } from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import cookieSession from 'cookie-session';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,16 +15,130 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 4001;
 
+// Configuración de Cookies
+if (!process.env.SESSION_SECRET || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_CLIENT_ID || !process.env.FRONTEND_URL) {
+  throw new Error('Variables de entorno no definidas');
+}
+
 /* ---------- MIDDLEWARES ---------- */
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true // Permitir que viajen las cookies
+}));
 
+
+app.use(
+  cookieSession({
+    name: 'session',
+    keys: [process.env.SESSION_SECRET], 
+    maxAge: 24 * 60 * 60 * 1000, // 24 horas
+  })
+);
+
+// SOLUCIÓN AL ERROR REGENERATE:
+app.use((req: any, res, next) => {
+  if (req.session && !req.session.regenerate) {
+    req.session.regenerate = (cb: any) => cb();
+  }
+  if (req.session && !req.session.save) {
+    req.session.save = (cb: any) => cb();
+  }
+  next();
+});
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+
+// Configuración de Passport
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: '/auth/google/callback',
+    },
+  async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Google devuelve un array de emails, tomamos el primero
+        const email = profile.emails?.[0].value;
+
+        if (!email) {
+          return done(new Error("No se pudo obtener el email de Google"), null);
+        }
+        console.log(email)
+        // Buscamos en tu DB usando tu función pgQuery
+        const users = await pgQuery('users', 'SELECT_BY_EMAIL', {email});
+        console.log(users)
+        if (users && users.length > 0) {
+
+          // El usuario existe en la DB, permitimos el acceso
+          const user = users[0];
+
+          
+          return done(null, user); 
+        } else {
+          console.log("ENTRA AL ERROR")
+
+          // El email NO está en la base de datos
+          // Pasamos 'false' en lugar del usuario para denegar el acceso
+          return done(null, false, { message: 'Tu email no está autorizado en el sistema.' });
+        }
+      } catch (error) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+passport.serializeUser((user: any, done) => done(null, user));
+passport.deserializeUser((user: any, done) => done(null, user));
 /* ---------- ASYNC HANDLER ---------- */
 const asyncHandler =
   (fn: Function) =>
   (req: any, res: any, next: any) =>
     Promise.resolve(fn(req, res, next)).catch(next);
 
+
+// Iniciar sesión
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+// Callback de Google
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', { 
+    failureRedirect: process.env.FRONTEND_URL+'/login?error=unauthorized', // Redirige al frontend con error
+    session: true 
+  }),
+  (req, res) => {
+    // Si llega aquí, es porque el email sí existía en la DB
+    res.redirect(process.env.FRONTEND_URL); 
+  }
+);
+// Cerrar sesión
+app.get('/auth/logout', (req, res) => {
+  req.logout(() => {
+    req.session = null; // Limpia la cookie de sesión
+    res.redirect(process.env.FRONTEND_URL!);
+  });
+});
+
+// Middleware de protección
+const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated()) { // Método que agrega passport
+    return next();
+  }
+  res.status(401).json({ error: 'Debes iniciar sesión para acceder a este recurso' });
+};
+
+// Aplicarlo a todas las rutas que empiecen con /api
+app.use('/api', isAuthenticated);
+
+// En tu archivo del servidor backend
+app.get('/api/me', isAuthenticated, (req, res) => {
+  res.json(req.user); // Si isAuthenticated pasa, enviamos los datos del usuario
+});
 /* ---------- API PROJECTS ---------- */
 app.get('/api/projects', asyncHandler(async (_, res) => {
   const rows = await pgQuery('projects', 'SELECT');
@@ -44,6 +160,7 @@ app.get('/api/projects', asyncHandler(async (_, res) => {
 
   res.json(projects);
 }));
+/* ---------- API PROJECTS (PROTEGIDA) ---------- */
 
 app.post('/api/projects', asyncHandler(async (req, res) => {
   const project: Project = req.body;
@@ -273,13 +390,132 @@ app.post('/api/nios', asyncHandler(async (req, res) => {
 
 /* ---------- API SUPPLIES ---------- */
 app.get('/api/supplies', asyncHandler(async (_, res) => {
-  res.json(await pgQuery('supplies', 'SELECT'));
+  const rows = await pgQuery('supplies', 'SELECT');
+  const supplies = rows.map((row: any) => ({
+    id: row.id,
+    code: row.code,
+    detail: row.detail,
+    unit: row.unit,
+    bestPrice: row.best_price,
+    bestSupplier: row.best_supplier,
+    isEnable: row.is_enable
+  }));
+  res.json(supplies);
+
 }));
 
 app.post('/api/supplies', asyncHandler(async (req, res) => {
-  const supply: Supply = req.body;
-  const created = await pgQuery('supplies', 'INSERT', supply);
+  const supply: Supply[] = req.body;
+  const dataArray = Array.isArray(supply) ? supply : (supply ? [supply] : []);
+
+  const results = dataArray.map((row: Supply) => ({
+    code: row.code,
+    detail: row.detail,
+    unit: row.unit
+  }));
+
+  const created = await pgQuery('supplies', 'INSERT_MANY', results);
   res.status(201).json(created);
+}));
+
+app.put('/api/supplies/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const supply: Supply = req.body;
+
+  const dbSupply = {
+    id,
+    code: supply.code,
+    detail: supply.detail,
+    unit: supply.unit,
+    is_enable: true
+  };
+
+  const result = await pgQuery('supplies', 'UPDATE', dbSupply);
+
+  if (!result) {
+    return res.status(404).json({ message: 'Insumo no encontrado' });
+  }
+
+  res.json(result);
+}));
+app.delete('/api/supplies/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await pgQuery('supplies', 'UPDATE', {
+    id,
+    is_enable: false
+  });
+
+  if (!result) {
+    return res.status(404).json({ message: 'Insumo no encontrado' });
+  }
+
+  res.json({ message: 'Insumo deshabilitado con éxito', user: result });
+}));
+
+/* ---------- API CHOFERES ---------- */
+app.get('/api/drivers', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('drivers', 'SELECT');
+  const drivers = rows.map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    vehicle: row.vehicle,
+    phone: row.phone,
+    isEnable: row.is_enable
+  }));
+  res.json(drivers);
+
+}));
+
+
+
+app.post('/api/drivers', asyncHandler(async (req, res) => {
+  const driver: Driver = req.body;
+
+  const dbDriver = {
+    name: driver.name,
+    phone: driver.phone,
+    vehicle: driver.vehicle
+  };
+
+
+  const created = await pgQuery('drivers', 'INSERT', dbDriver);
+  res.status(201).json(created);
+}));
+
+app.put('/api/drivers/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const driver: Driver = req.body;
+
+  const dbDriver = {
+    id,
+    name: driver.name,
+    phone: driver.phone,
+    vehicle: driver.vehicle,
+    is_enable: true
+  };
+
+  const result = await pgQuery('drivers', 'UPDATE', dbDriver);
+
+  if (!result) {
+    return res.status(404).json({ message: 'Chofer no encontrado' });
+  }
+
+  res.json(result);
+}));
+app.delete('/api/drivers/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await pgQuery('drivers', 'UPDATE', {
+    id,
+    is_enable: false
+  });
+
+  if (!result) {
+    return res.status(404).json({ message: 'Chofer no encontrado' });
+  }
+
+  res.json({ message: 'Chofer deshabilitado con éxito', user: result });
 }));
 
 /* ---------- ERROR HANDLER (SIEMPRE AL FINAL) ---------- */

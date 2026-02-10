@@ -1,7 +1,7 @@
 -- Tabla de Roles (Roles)
 CREATE TABLE IF NOT EXISTS roles (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT UNIQUE NOT NULL,
     is_enable BOOLEAN DEFAULT TRUE
 );
 -- Tabla de Permisos (Permisions)
@@ -17,6 +17,7 @@ VALUES
  ('Gerente de obra'),
  ('Jefe de obra'),
  ('Gerente de Cómputo y presupuesto'),
+ ('Gerente de Compras'),
  ('Área Compras');
 
 -- Tabla de Usuarios (Usuarios)
@@ -25,16 +26,29 @@ CREATE TABLE IF NOT EXISTS users (
     role_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     last_name TEXT,
-    email TEXT NOT NULL,
+    google_id TEXT,
+    email TEXT UNIQUE NOT NULL,
     password TEXT,
     is_enable BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
+INSERT INTO users (name,last_name,role_id,email)
+VALUES
+ ('Romeo','',1,'romegomez29@gmail.com'),
+ ('Ricardo','Ozcoidi',4,'ricardo@constructuraapolosur.com'),
+ ('Germán','Gatica',1,'ggatica@constructoraapolosur.com'),
+ ('Mauro','Ponchietti',2,'mauroponchietti@constructoraapolosur.com'),
+ ('Martina','Andia',3,'mandia@constructoraapolosur.com'),
+ ('Brenda','Escudero',3,'bescudero@constructoraapolosur.com'),
+ ('Javier','Dominguez',3,'jdominguez@constructoraspolosur.com'),
+ ('Cecilia','Lombardi',5,'clombardi@constructoraapolosur.com'),
+ ('Equipo','Compras',6,'compras@constructoraapolosur.com'),
+ ('Edgardo','Fariello',2,'efariello@constructoraapolosur.com');
 
 -- Tabla de Proyectos (Actualizada)
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT UNIQUE NOT NULL,
     address TEXT,
     start_date DATE,
     duration_days INTEGER,
@@ -73,7 +87,14 @@ CREATE TABLE IF NOT EXISTS supplies (
     unit TEXT,
     is_enable BOOLEAN DEFAULT TRUE 
 );
-
+-- Tabla de Choferes
+CREATE TABLE IF NOT EXISTS drivers (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    vehicle TEXT,
+    phone BIGINT,
+    is_enable BOOLEAN DEFAULT TRUE 
+);
 -- Tabla de NIOs (Necesidad Interna de Obra)
 CREATE TABLE IF NOT EXISTS nios (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -63,10 +63,11 @@ sudo systemctl restart nginx
 npx ts-node src/backend/server.ts
 npm install -D ts-node typescript @types/node
 
-rm -rf build
-npx tsc -p tsconfig.server.json
+sudo rm -rf build
+sudo npx tsc -p tsconfig.server.json
 node build/backend/server.js
 
+sudo pm2 start build/backend/server.js --name tracker-backend
 
 sudo apt update
 sudo apt install postgresql postgresql-contrib -y

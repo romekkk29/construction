@@ -13,6 +13,7 @@ export interface User {
   isEnable?:boolean;
   email: string;
   password?: string;
+  google_id?: string;
 }
 export interface Role {
   id: number;
@@ -58,8 +59,16 @@ export interface Supply {
   bestPrice?: number;
   bestSupplier?: string;
   unit: string;
+  isEnable?:boolean;
+  isCreatedYet?:boolean;
 }
-
+export interface Driver {
+  id?: number;
+  name: string;
+  vehicle?: string;
+  phone?: number;
+  isEnable?:boolean;
+}
 export enum NIOStatus {
   SITE = 'SITE',
   PROCUREMENT = 'PROCUREMENT',

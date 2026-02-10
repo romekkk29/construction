@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action = 'SELECT' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT';
+type Action = 'SELECT' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
 
 export const pgQuery = async (
   table: string,
@@ -82,7 +82,10 @@ export const pgQuery = async (
       await query(`DELETE FROM ${table} WHERE id = $1`, [data.id]);
       return true;
     }
-
+    case 'SELECT_BY_EMAIL': {
+      const rows = await query(`SELECT * FROM users WHERE email = $1 AND is_enable = TRUE`, [data.email]);
+      return rows ?? null;
+    }
     case 'SELECT_USERS': {
       if (data?.id) {
         const rows = await query(

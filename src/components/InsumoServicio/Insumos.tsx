@@ -2,12 +2,12 @@ import React, {useState,useEffect,useRef} from "react";
 
 import { Role, User,Supply } from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { Plus, Edit, Trash2,Loader2,BrainCircuit,Search } from "lucide-react";
+import { Plus, Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users } from "lucide-react";
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
 import * as XLSX from 'xlsx';
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
 import InsumoFormModal from "./InsumoFormModal";
-
+import DriverComponent from "./Choferes"
 // --- Utility Functions ---
 const fileToBase64 = (file: File): Promise<FileData> => {
   return new Promise((resolve, reject) => {
@@ -44,13 +44,23 @@ const parseExcelToCSV = (file: File): Promise<string> => {
 export default function SupliesComponent() {
     const [supplies, setSupplies] = useState<Supply[]>([]);
     const [isOpenInsumoFormModel, setIsOpenInsumoFormModel] = useState(false);
-
+    const [isOpenInsumoDeleteModel, setIsOpenInsumoDeleteModel] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(""); 
     const [editingSupply, setEditingSupply] = useState<Supply | null>(null);
+    const [isChofer, setIsChofer] = useState(false);
 
     const [isAIProcessing, setIsAIProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [currentUploadType, setCurrentUploadType] = useState<{type: 'budget' | 'supplies', id?: string} | null>(null);
-      const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    
+    const filteredSupplies = supplies.filter((supply) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        supply.code?.toLowerCase().includes(searchLower) ||
+        supply.detail?.toLowerCase().includes(searchLower)
+      );});
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUploadType) return;
 
@@ -77,13 +87,60 @@ export default function SupliesComponent() {
     setCurrentUploadType({ type, id });
     fileInputRef.current?.click();
   };
-    const handleCreateSupply = () => {        
-    alert("en desarrollo")
-  };
+    const handleCreateSupply = async(supply: Supply) => {        
+       try {
+         setLoading(true)
+         const response = await apiClient.supplies.create([supply]);
+         let newIdSupply={...supply,id:response[0].id,bestPrice:null}
+         setSupplies((prevState)=>[...prevState,newIdSupply]);  
+         setIsOpenInsumoFormModel(false)    
+         setLoading(false)
 
-    const handleUpdateSupply = () => {        
-    alert("en desarrollo")
-  };
+       } catch (err: any) {
+         alert(err.message || 'Error al crear usuario');
+          setLoading(false)
+
+       }
+     };
+    const handleDeleteSupply = async (id:number) => {
+        setLoading(true)
+        const deleteResponse = await apiClient.supplies.delete(id);
+        if(deleteResponse.message){
+            setSupplies(prev =>
+            prev.filter(p => (p.id !== id))
+        );
+        }else{
+        alert("Error "+ deleteResponse)
+        }
+        setLoading(false)
+        setIsOpenInsumoDeleteModel(false)
+        setEditingSupply(null)
+    };
+
+    const handleUpdateSupply = async (supply: Supply) => {
+        const updated = await apiClient.supplies.update(supply);
+
+        setSupplies(prev =>
+        prev.map(p => (p.id === updated.id ? supply : p))
+        );
+
+        setEditingSupply(null);
+        setIsOpenInsumoFormModel(false);
+    };
+
+    useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [supplies] = await Promise.all([
+          apiClient.supplies.list(),
+        ]);
+        setSupplies(supplies);
+      } catch (error) {
+        console.error("DB Connection Error:", error);
+      }
+    };
+    fetchData();
+  }, []);
   return (
     <>
                      <input 
@@ -104,29 +161,65 @@ export default function SupliesComponent() {
                         onSubmit={editingSupply ? handleUpdateSupply : handleCreateSupply}
                         />
                     <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-slate-800">Insumos y Servicios</h2>
-                        <div className="flex gap-2">
-                        <button 
-                            onClick={() => triggerAIUpload('supplies')}
-                            disabled={isAIProcessing}
-                            className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl flex items-center gap-2 border border-purple-200"
-                        >
-                            {isAIProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
-                            Importar IA
-                        </button>
-                        <button onClick={()=>setIsOpenInsumoFormModel(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2">
-                            <Plus className="h-5 w-5" /> Nuevo Insumo
-                        </button>
+                        {!isChofer?
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            {/* Título de la izquierda */}
+                            <h2 className="text-2xl font-bold text-slate-800">Insumos y servicios</h2>
+
+                            {/* Botón Central (Verde) */}
+                              <div className="w-full md:w-auto flex justify-center flex-1">
+                                <button 
+                                    onClick={() => {setIsChofer(true)}} 
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-sm"
+                                >
+                                    <Users className="h-5 w-5" />
+                                    {/* Texto dinámico según el tamaño de pantalla */}
+                                    <span className="hidden md:inline">Cambiar a choferes</span>
+                                    <span className="inline md:hidden">Choferes</span>
+                                </button>
+                            </div>
+                            
+
+                            {/* Botones de la derecha */}
+                       <div className="flex gap-2 w-full md:w-auto justify-end">
+                              
+                                <button 
+                                    onClick={() => triggerAIUpload('supplies')}
+                                    disabled={isAIProcessing}
+                                    className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl flex items-center gap-2 border border-purple-200 flex-1 md:flex-none justify-center"
+                                >
+                                    {isAIProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
+                                    <span className="text-sm md:text-base">Importar IA</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setIsOpenInsumoFormModel(true)} 
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 flex-1 md:flex-none justify-center"
+                                >
+                                    <Plus className="h-5 w-5" /> 
+                                    <span className="text-sm md:text-base">Nuevo Insumo</span>
+                                </button>
+                            </div>                          
                         </div>
-                    </div>
+                        :null}
+                        {!isChofer?
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                             <div className="p-4 bg-slate-50 border-b flex gap-4">
                             <div className="relative flex-1">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                                <input type="text" placeholder="Buscar por código o detalle..." className="w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none" />
+                              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                              <input 
+                                type="text" 
+                                placeholder="Buscar por código o detalle..." 
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none"
+                                // 3. Vincular estados
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                              />
                             </div>
                             </div>
+                   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-8 overflow-hidden">
+                        <div className="overflow-x-auto">
+
                             <table className="w-full text-left">
                             <thead className="bg-slate-50 border-b">
                                 <tr>
@@ -135,22 +228,53 @@ export default function SupliesComponent() {
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Unidad</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Precio</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Proveedor</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {supplies.map(supply => (
+                                {filteredSupplies.map(supply =>  {
+                                     const isCreated = supply.isCreatedYet !== false;
+                                  return(
                                 <tr key={supply.id} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 font-mono text-sm text-slate-600">{supply.code}</td>
                                     <td className="px-6 py-4 font-medium text-slate-800">{supply.detail}</td>
                                     <td className="px-6 py-4 text-slate-500">{supply.unit}</td>
                                     <td className="px-6 py-4 text-emerald-600 font-bold">${supply.bestPrice?.toLocaleString() || '-'}</td>
                                     <td className="px-6 py-4 text-slate-800">{supply.bestSupplier || '-'}</td>
+                                   <td className="px-6 py-4">
+                                    <div className="flex justify-center items-center gap-2">
+                                        {isCreated ? (
+                                            <>
+                                                <button onClick={() => { setEditingSupply(supply); setIsOpenInsumoFormModel(true) }} title="Editar" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                    <Edit3 className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => { setEditingSupply(supply); setIsOpenInsumoDeleteModel(true) }} title="Eliminar" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div title="Sincronizando..." className="p-1.5 text-amber-500 animate-pulse">
+                                                <Clock className="h-5 w-5" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </td>
                                 </tr>
-                                ))}
+                                )})}
                             </tbody>
                             </table>
-                        </div>
-                        </div>                      {/* Global Overlay for AI Processing */}
+                          </div>
+
+                          {/* Indicador visual opcional para móvil */}
+                          <div className="md:hidden bg-slate-50 text-[10px] text-slate-400 text-center py-1 border-t">
+                              ← Desliza lateralmente para ver más →
+                          </div>
+                      </div>
+                        </div>:
+                        <DriverComponent setIsChofer={setIsChofer}></DriverComponent>
+                          }
+                        </div> 
+                        {/* Global Overlay for AI Processing */}
                       {isAIProcessing && (
                           <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
                           <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full text-center border border-white/20">
@@ -174,6 +298,19 @@ export default function SupliesComponent() {
                           </div>
                           </div>
                       )}
+
+                       <ConfirmDeleteModal
+                          isOpen={isOpenInsumoDeleteModel}
+                          onClose={() => {
+                              setEditingSupply(null)
+                              setIsOpenInsumoDeleteModel(false);
+                          }}
+                          onConfirm={() => {
+                              handleDeleteSupply(editingSupply?.id??1)
+                          }}
+                          itemName={" el insumo o servicio "+editingSupply?.detail}
+                          loading={loading}
+                          ></ConfirmDeleteModal>
  </>
   );
 }
