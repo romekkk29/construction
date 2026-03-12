@@ -2,7 +2,7 @@ import React, {useState,useEffect,useRef} from "react";
 
 import { Role, User,Supply } from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { Plus, Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users } from "lucide-react";
+import { Plus,Save,Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users } from "lucide-react";
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
 import * as XLSX from 'xlsx';
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
@@ -70,7 +70,8 @@ export default function SupliesComponent() {
       
         const data = await extractSupplyData(fileData);
         setSupplies(prev => [...prev, ...data.map((d: any, i: number) => ({
-          id:1,
+          id:i,
+          isCreatedYet:false,
           ...d
         }))]);
       alert("Procesamiento completado con éxito");
@@ -127,7 +128,28 @@ export default function SupliesComponent() {
         setEditingSupply(null);
         setIsOpenInsumoFormModel(false);
     };
-
+    const handleInsertMany = async () => {
+      try {
+        const dataArray = Array.isArray(supplies) ? supplies : [];
+        const payload= dataArray.filter(el=>el.isCreatedYet===false)
+        if(payload.length<1){
+          return alert("No hay data")
+        }
+        setLoading(true)
+        const response = await apiClient.supplies.create(payload);
+        console.log(response)
+        console.log(payload)
+          const newSuplies = supplies.map(obj => ({
+          ...obj,
+          isCreatedYet: true
+          }));
+      setSupplies(newSuplies);
+          setLoading(false)
+      } catch (err: any) {
+          setLoading(false)
+        console.log(err.message || 'Error al crear usuario');
+      }
+    };
     useEffect(() => {
     const fetchData = async () => {
       try {
@@ -274,6 +296,23 @@ export default function SupliesComponent() {
                         <DriverComponent setIsChofer={setIsChofer}></DriverComponent>
                           }
                         </div> 
+                                                        <div className="flex gap-3 justify-end pb-12">
+                                    {loading?                                    <button 
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl flex items-center gap-2"
+                                        
+                                    >
+                                        <Save className="h-5 w-5" />
+                                        Cargando...
+                                    </button>:
+                                    <button 
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl flex items-center gap-2"
+                                        onClick={() => {handleInsertMany()}}
+                                    >
+                                        <Save className="h-5 w-5" />
+                                        Guardar Cambios 
+                                    </button>
+                                        }
+                                </div>
                         {/* Global Overlay for AI Processing */}
                       {isAIProcessing && (
                           <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">

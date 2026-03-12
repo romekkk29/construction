@@ -4,10 +4,11 @@ import path from 'path';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { pgQuery } from './pgQuery.js';
-import { Project, NIO, Supply, User, CostAccount, Driver } from './types.js';
+import { Project, Supply, User, CostAccount, Driver } from './types.js';
 import passport, { use } from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import cookieSession from 'cookie-session';
+import { userInfo } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -378,16 +379,271 @@ app.delete('/api/costaccounts/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'Cuenta costo deshabilitado con éxito', user: result });
 }));
 /* ---------- API NIOS ---------- */
-app.get('/api/nios', asyncHandler(async (_, res) => {
-  res.json(await pgQuery('nios', 'SELECT'));
-}));
-
+/* ---------- API NIOS ---------- */
 app.post('/api/nios', asyncHandler(async (req, res) => {
-  const nio: NIO = req.body;
-  const created = await pgQuery('nios', 'INSERT', nio);
-  res.status(201).json(created);
-}));
+  const { nio, nioSuppliers } = req.body;
 
+  if (!nio || !nioSuppliers || nioSuppliers.length === 0) {
+    return res.status(400).json({ error: "Datos incompletos" });
+  }
+
+  // 1. Mapeamos el objeto nio para que coincida con los nombres de la DB (snake_case)
+  const nioToInsert = {
+    project_id: nio.projectId,
+    need_date: nio.needDate,
+    status: nio.status || 1,
+    user_id: nio.userId
+  };
+
+  // 2. Insertamos la NIO principal
+  const createdNio = await pgQuery('nios', 'INSERT', nioToInsert);
+  
+  // Obtenemos el ID generado por la base de datos
+  const newNioId = createdNio.id;
+
+  // 3. Preparamos los proveedores/items inyectando el nios_id recién creado
+  // Importante: Asegúrate de mapear los nombres de campos a los de tu tabla nios_supplies
+  const suppliersToInsert = nioSuppliers.map(item => ({
+    nios_id: newNioId,           // El ID que vincula todo
+    user_id: item.userId,
+    supplies_id: item.supplyId,  // Ajustado a supplies_id según tu SQL
+    quantity: item.quantity,
+    status: item.status || 1,
+    account_id: item.accountId,
+    detail: item.detail || "Sin detalle" // Tu tabla pide detail NOT NULL
+  }));
+
+  // 4. Insertamos todos los items en una sola consulta
+  const createdSuppliers = await pgQuery('nios_supplies', 'INSERT_MANY', suppliersToInsert);
+  const newCreatedNio={
+    projectId:createdNio.project_id,
+    needDate:createdNio.need_date,
+    status:createdNio.status,
+    userId:createdNio.user_id,
+    id:createdNio.id,
+    creationDate:createdNio.creation_date,
+    isEnable: createdNio.is_enable
+  }
+  const newcreatedSuppliers = createdSuppliers.map((row: any) => ({
+    id: row.id,
+    niosId: row.nios_id,
+    supplyId: row.supplies_id,
+    status: row.status,
+    userId: row.user_id,
+    quantity: parseFloat(row.quantity),
+    accountId: row.account_id,
+    detail: row.detail
+  }));
+  // 5. Respondemos con el objeto completo creado
+  res.status(201).json({
+    nio:newCreatedNio,
+    items: newcreatedSuppliers
+  });
+}));
+app.post('/api/nios_sell', asyncHandler(async (req, res) => {
+  const {niosSupply,account_id} = req.body;
+
+  const niosSupplyUpdate = {
+    id:niosSupply.nios_supplies_id,
+    status: 3
+  };
+  const updateAccount = {
+    id:account_id,
+    column: 'spent',
+    amount: niosSupply.price_total
+  };
+  console.log(updateAccount)
+  // me falta el gasto che he ehe je
+  const createdNioSell = await pgQuery('nios_sells', 'INSERT', niosSupply);
+  const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
+  const updateAccountResponse = await pgQuery('cost_accounts', 'UPDATE_COUNT', updateAccount);
+  console.log(updateAccountResponse)
+  res.status(201).json(createdNioSell);
+}));
+app.post('/api/nios_driver', asyncHandler(async (req, res) => {
+  const {niosDriver,user} = req.body;
+
+  const niosDriverSave = {
+    nios_sells_id:niosDriver.id,
+    user_id: user, 
+    driver_id:parseInt(niosDriver.driverId),
+    status: 4
+  };
+  const niosSupplyUpdate = {
+    id:niosDriver.nios_supplies_id,
+    status: 4
+  };
+  const createdNioSell = await pgQuery('nios_driver', 'INSERT', niosDriverSave);
+  const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
+  res.status(201).json(createdNioSell);
+}));
+app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { nioSuppliers,user } = req.body;
+
+  const dbNIO = {
+    id,
+    status: 2,
+    to_procurement_at: new Date().toISOString() // Genera: 2024-05-20T15:30:00.000Z
+  };
+
+  const result = await pgQuery('nios', 'UPDATE', dbNIO);
+
+  const dataArray = Array.isArray(nioSuppliers) ? nioSuppliers : (nioSuppliers ? [nioSuppliers] : []);
+
+  const results = dataArray.map((row: any) => ({
+    id:row.id,
+    user_id: user.id,
+    status:2,
+    sent_date:new Date().toISOString()
+  }));
+
+
+  const created = await pgQuery('nios_supplies', 'UPDATE_MANY', results);
+  
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+
+  res.json(result);
+}));
+app.put('/api/nios_finish_seller/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const dbNIO = {
+    id,
+    status: 3,
+    to_logistics_at: new Date().toISOString() // Genera: 2024-05-20T15:30:00.000Z
+  };
+  const result = await pgQuery('nios', 'UPDATE', dbNIO);
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+  res.json(result);
+}));
+app.put('/api/nios_finish_logic/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const dbNIO = {
+    id,
+    status: 4,
+    to_transit_at: new Date().toISOString() // Genera: 2024-05-20T15:30:00.000Z
+  };
+  const result = await pgQuery('nios', 'UPDATE', dbNIO);
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+  res.json(result);
+}));
+app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { niosReception,user } = req.body;
+  let ql=parseFloat(niosReception.quantity_less)
+  const dbNIO = {
+    id,
+    quantity_less: ql,
+    reception_user_id:user,
+    status:5,
+    reception_date: new Date().toISOString()
+  };
+  const dbNIO2 = {
+    id,
+    quantity_less: ql,
+    reception_user_id:user,
+  };
+  const niosSupplyUpdate = {
+    id:niosReception.nios_supplies_id,
+    status: 5
+  };
+  const niosSellUpdate = {
+    id:niosReception.nios_sell_id,
+    status: 5
+  };
+  let result = await pgQuery('nios_driver', 'UPDATE', ql>0?dbNIO2:dbNIO);
+  if(ql==0){
+      const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
+      const updateNioSell = await pgQuery('nios_sells', 'UPDATE', niosSellUpdate);
+  }
+  res.json(result);
+}));
+app.get('/api/nios', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('nios', 'SELECT_NIOS');
+  const nios = rows.map((row: any) => ({
+    id: row.id,
+    projectId: row.project_id,
+    needDate: row.need_date,
+    creationDate: row.creation_date,
+    toProcurementAt: row.to_procurement_at,
+    toLogisticsAt: row.to_logistics_at,
+    toTransitAt: row.to_transit_at,
+    completedAt: row.completed_at,
+    status: row.status,
+    userId: row.user_id,
+    isEnable: row.is_enable
+  }));
+  res.json(nios);
+
+}));
+app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('nios_supplies', 'SELECT_NIOS');
+  const nios_supplier = rows.map((row: any) => ({
+    id: row.id,
+    niosId: row.nios_id,
+    supplyId: row.supplies_id,
+    status: row.status,
+    userId: row.user_id,
+    quantity: parseFloat(row.quantity),
+    accountId: row.account_id,
+    detail: row.detail
+  }));
+  res.json(nios_supplier);
+
+}));
+app.get('/api/nios_sells', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('nios_sells', 'SELECT_NIOS');
+  const nios_sells = rows.map((row: any) => ({
+    id: row.id,
+    nios_supplies_id: row.nios_supplies_id,
+    user_id: row.user_id,
+    creation_date: row.creation_date,
+    oc_number: row.oc_number,
+    price_individual: parseFloat(row.price_individual),
+    supplier: row.supplier,
+    detail: row.detail,
+    price_total: parseFloat(row.price_total)
+  }));
+  res.json(nios_sells);
+}));
+app.get('/api/nios_driver', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('nios_driver', 'SELECT_NIOS');
+  const nios_driver = rows.map((row: any) => ({
+    nios_drivers_id: row.id,
+    nios_sells_id: row.nios_sells_id,
+    user_id: row.user_id,
+    driver_date: row.creation_date,
+    status_transit: row.status,
+    quantity_less: parseFloat(row.quantity_less),
+    driver_id: row.driver_id,
+    reception_date: row.reception_date,
+    reception_user_id: row.reception_user_id
+  }));
+  res.json(nios_driver);
+}));
+app.get('/api/nios_completed', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('nios_driver', 'SELECT_NIOS_COMPLETED');
+  res.json(rows);
+}));
+app.put('/api/nios_finish_nio/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const dbNIO = {
+    id,
+    status: 5,
+    completed_at: new Date().toISOString() // Genera: 2024-05-20T15:30:00.000Z
+  };
+  const result = await pgQuery('nios', 'UPDATE', dbNIO);
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+  res.json(result);
+}));
 /* ---------- API SUPPLIES ---------- */
 app.get('/api/supplies', asyncHandler(async (_, res) => {
   const rows = await pgQuery('supplies', 'SELECT');

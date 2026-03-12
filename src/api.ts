@@ -1,4 +1,4 @@
-import { Project, NIO, Supply, User, Role, CostAccount,Driver } from './backend/types.js';
+import { Project, Supply, User, Role, CostAccount,Driver } from './backend/types.js';
 
 const API_BASE_URL = '/api';
 
@@ -105,24 +105,104 @@ export const apiClient = {
       return res.json();
     },
   },
-
-  nios: {
-    list: async (): Promise<NIO[]> => {
-      const res = await fetch(`${API_BASE_URL}/nios`);
-      return res.json();
-    },
-    upsert: async (n: NIO): Promise<NIO> => {
-      const res = await fetch(`${API_BASE_URL}/nios`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(n),
-      });
-      return res.json();
-    },
-  },
   session:{
       list: async (): Promise<User> => {
       const res = await fetch(`${API_BASE_URL}/me`);
+      return res.json();
+    },
+  },  
+  nios:{
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/nios`);
+      return res.json();
+    },
+    listSupplier: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/nios_supplier`);
+      return res.json();
+    },
+    listSells: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/nios_sells`);
+      return res.json();
+    },
+    listDrivers: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/nios_driver`);
+      return res.json();
+    },
+    nios_finish_seller: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_finish_seller/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    listNioCompleted: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/nios_completed`);
+      return res.json();
+    },
+    nios_finish_logic: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_finish_logic/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    nios_finish_nio: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_finish_nio/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    putSentSell: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_sent_seller/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    create: async (payload: any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw await res.json();
+      }
+      return res.json();
+    },
+    createSell: async (payload: any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_sell`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw await res.json();
+      }
+      return res.json();
+    },
+    createDriver: async (payload: any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_driver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw await res.json();
+      }
+      return res.json();
+    },
+    createReception: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_reception/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
       return res.json();
     },
   },

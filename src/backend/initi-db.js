@@ -29,6 +29,9 @@ async function setupDatabase() {
         DROP TABLE IF EXISTS cost_accounts CASCADE;
         DROP TABLE IF EXISTS supplies CASCADE;
         DROP TABLE IF EXISTS nios CASCADE;
+        DROP TABLE IF EXISTS nios_supplies CASCADE;
+        DROP TABLE IF EXISTS nios_sells CASCADE;
+        DROP TABLE IF EXISTS nios_driver CASCADE;
         DROP TABLE IF EXISTS project_stocks CASCADE;      
         DROP TABLE IF EXISTS roles CASCADE;       
         DROP TABLE IF EXISTS permisions CASCADE;     

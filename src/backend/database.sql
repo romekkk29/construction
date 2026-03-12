@@ -99,40 +99,60 @@ CREATE TABLE IF NOT EXISTS drivers (
 CREATE TABLE IF NOT EXISTS nios (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     project_id INTEGER REFERENCES projects(id),
-    account_id INTEGER REFERENCES cost_accounts(id),
-    supply_id INTEGER REFERENCES supplies(id),
     creation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    need_date TIMESTAMP WITH TIME ZONE,
-    supply_manual TEXT,
-    unit TEXT,
-    quantity NUMERIC(12, 4),
-    status TEXT NOT NULL,
-    is_enable BOOLEAN DEFAULT TRUE,
-    
-    -- Detalles de Compra
-    procurement_date TIMESTAMP WITH TIME ZONE,
-    supplier TEXT,
-    oc_number TEXT,
-    purchase_price NUMERIC(15, 2),
-
-    -- Detalles de Logística
-    driver TEXT,
-    logistics_date TIMESTAMP WITH TIME ZONE,
-    delivered_quantity NUMERIC(12, 4),
-    
-    -- Timestamps de Trazabilidad
     to_procurement_at TIMESTAMP WITH TIME ZONE,
     to_logistics_at TIMESTAMP WITH TIME ZONE,
     to_transit_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE
+    completed_at TIMESTAMP WITH TIME ZONE,
+    need_date TIMESTAMP WITH TIME ZONE,
+    status INTEGER NOT NULL DEFAULT 1,
+    is_enable BOOLEAN DEFAULT TRUE,
+    user_id INTEGER REFERENCES users(id)
 );
-
+-- Tabla de NIOs (Necesidad Interna de Obra)
+CREATE TABLE IF NOT EXISTS nios_supplies (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nios_id INTEGER REFERENCES nios(id),
+    user_id INTEGER REFERENCES users(id),
+    sent_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    supplies_id INTEGER REFERENCES supplies(id),
+    quantity NUMERIC(12, 2),
+    detail  TEXT,
+    status INTEGER NOT NULL DEFAULT 1,
+    is_enable BOOLEAN DEFAULT TRUE,
+    account_id INTEGER REFERENCES cost_accounts(id)
+);
+-- Tabla de NIOs (Necesidad Interna de Obra)
+CREATE TABLE IF NOT EXISTS nios_sells (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nios_supplies_id INTEGER REFERENCES nios_supplies(id),
+    user_id INTEGER REFERENCES users(id),
+    creation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status INTEGER NOT NULL DEFAULT 1,
+    oc_number TEXT NOT NULL,
+    supplier  TEXT NOT NULL,
+    price_individual NUMERIC(15, 2),
+    is_enable BOOLEAN DEFAULT TRUE,
+    price_total NUMERIC(15, 2) 
+);
+CREATE TABLE IF NOT EXISTS nios_driver (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nios_sells_id INTEGER REFERENCES nios_sells(id),
+    user_id INTEGER REFERENCES users(id),
+    creation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status INTEGER NOT NULL DEFAULT 1,
+    driver_id INTEGER REFERENCES drivers(id),
+    reception_user_id INTEGER REFERENCES users(id),
+    reception_date TIMESTAMP WITH TIME ZONE,
+    is_enable BOOLEAN DEFAULT TRUE,
+    quantity_less NUMERIC(12, 2)
+);
 -- Tabla de Stock por Obra
 CREATE TABLE IF NOT EXISTS project_stocks (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     project_id INTEGER REFERENCES projects(id),
     supply_id INTEGER REFERENCES supplies(id),
-    quantity NUMERIC(12, 4),
+    quantity NUMERIC(12, 2),
     unit TEXT,
     last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     is_enable BOOLEAN DEFAULT TRUE 

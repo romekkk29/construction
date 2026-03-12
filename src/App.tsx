@@ -29,12 +29,13 @@ import {
 } from 'lucide-react';
 
 import UsersComponent from "./components/Users/Users"
-import { ViewType, Project, Supply, NIO, ProjectStock, NIOStatus, CostAccount } from './backend/types';
+import { ViewType, Project, Supply, ProjectStock, NIOStatus, CostAccount } from './backend/types';
 import ObraComponent from './components/Obra/Obra';
 import SupliesComponent from './components/InsumoServicio/Insumos';
-import { AuthProvider } from './components/Login/ProtectedRoute';
+import NioComponent from './components/NIO/Nio'
 import Header from './components/Styles/Header';
 import SidebarItem from './components/Styles/SideBarItem';
+import { useAuth } from './components/Login/ProtectedRoute';
 
 
 
@@ -44,9 +45,9 @@ import SidebarItem from './components/Styles/SideBarItem';
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
+   const { user } = useAuth();
   const renderDashboard = () => (
-        <ObraComponent></ObraComponent>
+        <p>Nada aun</p>
   )
   const renderProjects = () => (
       <ObraComponent></ObraComponent>
@@ -57,25 +58,32 @@ export default function App() {
   const renderSupplies = () => (
     <SupliesComponent></SupliesComponent>
   )
+  const renderNio = () => (
+    <NioComponent></NioComponent>
+  )
   const renderCurrentView = () => {
     switch (activeView) {
       case 'dashboard': return renderDashboard();
       case 'projects': return renderProjects();
       case 'supplies': return renderSupplies();
       case 'users': return renderUsers();
+      case 'nio': return renderNio();
       default: return renderDashboard();
     }
   };
 
   return (
-    <AuthProvider>
     <div className="min-h-screen bg-slate-50">
       <Header onOpenSidebar={() => setSidebarOpen(true)} />
       <div className="flex h-[calc(100vh-4rem)]">
         <aside className="hidden md:flex w-72 flex-col border-r bg-white p-4 gap-2">
           <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} />
+          {user.role_id==1?        
           <SidebarItem icon={Users} label="Usuarios" active={activeView === 'users'} onClick={() => setActiveView('users')} />
+          :null} 
+          {user.role_id==1||user.role_id==4?   
           <SidebarItem icon={Construction} label="Obras y Presupuestos" active={activeView === 'projects'} onClick={() => setActiveView('projects')} />
+          :null}
           <SidebarItem icon={Package} label="Logística y compras" active={activeView === 'supplies'} onClick={() => setActiveView('supplies')} />
           <SidebarItem icon={Warehouse} label="Stock por Obra" active={activeView === 'stock'} onClick={() => setActiveView('stock')} />
           <SidebarItem icon={ClipboardList} label="Pizarra NIO" active={activeView === 'nio'} onClick={() => setActiveView('nio')} />
@@ -114,6 +122,5 @@ export default function App() {
         <button onClick={() => setActiveView('traceability')} className={`p-2 rounded-full ${activeView === 'traceability' ? 'text-blue-600' : 'text-slate-400'}`}><TrendingUp className="h-6 w-6" /></button>
       </nav>
     </div>
-    </AuthProvider>
   );
 }

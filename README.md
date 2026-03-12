@@ -68,7 +68,7 @@ sudo npx tsc -p tsconfig.server.json
 node build/backend/server.js
 
 sudo pm2 start build/backend/server.js --name tracker-backend
-
+sudo pm2 restart tracker-backend
 sudo apt update
 sudo apt install postgresql postgresql-contrib -y
 

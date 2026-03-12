@@ -76,36 +76,43 @@ export enum NIOStatus {
   TRANSIT = 'TRANSIT',
   COMPLETED = 'COMPLETED'
 }
-
-export interface NIO {
-  id: NIOId;
+export interface NIOS {
+  id?: number;
   projectId: ProjectId;
-  creationDate: string;
+  creationDate?: string;
   needDate: string;
-  accountId: string;
-  supplyId: string;
-  supplyManual?: string;
-  unit: string;
-  quantity: number;
-  status: NIOStatus;
-  
-  // Procurement details
-  procurementDate?: string;
-  supplier?: string;
-  ocNumber?: string;
-  purchasePrice?: number;
-
-  // Logistics details
-  driver?: string;
-  logisticsDate?: string;
-  deliveredQuantity?: number;
-  
-  // Timestamps for traceability
+  status: number;
+  isEnable?:boolean;
+  userId?: number;
   toProcurementAt?: string;
   toLogisticsAt?: string;
   toTransitAt?: string;
   completedAt?: string;
 }
+export interface NIOSupplier {
+  id?: number;
+  niosId?:number;
+  userId?: number;
+  sentDate?: string;
+  supplyId: number;
+  status: number;
+  quantity: number;
+  detail?: string;
+  accountId: number; 
+  nios_sell_id?:number; 
+  creation_date?: string;
+  statusSell?:number;
+  oc_number?: string;
+  supplier?: string;
+  price_individual?:number;
+  nios_drivers_id?:number; 
+  driver_date?: string;
+  status_transit?:number;
+  quantity_less?:number;
+  driver_id?:number;
+  reception_date?: string;
+}
+
 
 export interface ProjectStock {
   id: string;
