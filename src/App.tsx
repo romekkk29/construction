@@ -47,7 +47,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
    const { user } = useAuth();
   const renderDashboard = () => (
-        <p>Proximamente</p>
+        <p>Próximamente</p>
   )
   const renderProjects = () => (
       <ObraComponent></ObraComponent>
