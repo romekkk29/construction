@@ -38,6 +38,8 @@ import SidebarItem from './components/Styles/SideBarItem';
 import { useAuth } from './components/Login/ProtectedRoute';
 
 
+import TrazaComponent from './components/Traza/Traza';
+import DashBoardComponent from './components/Dashboard/Dashboard';
 
 
 // --- Main App ---
@@ -47,8 +49,11 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
    const { user } = useAuth();
   const renderDashboard = () => (
-        <p>Próximamente</p>
+        <DashBoardComponent></DashBoardComponent>
   )
+  const renderTraza = () => (
+        <TrazaComponent></TrazaComponent>
+  ) 
   const renderProjects = () => (
       <ObraComponent></ObraComponent>
   );
@@ -68,6 +73,7 @@ export default function App() {
       case 'supplies': return renderSupplies();
       case 'users': return renderUsers();
       case 'nio': return renderNio();
+      case 'traza': return renderTraza();
       default: return renderDashboard();
     }
   };
@@ -81,13 +87,11 @@ export default function App() {
           {user.role_id==1?        
           <SidebarItem icon={Users} label="Usuarios" active={activeView === 'users'} onClick={() => setActiveView('users')} />
           :null} 
-          {user.role_id==1||user.role_id==4?   
           <SidebarItem icon={Construction} label="Obras y Presupuestos" active={activeView === 'projects'} onClick={() => setActiveView('projects')} />
-          :null}
           <SidebarItem icon={Package} label="Logística y compras" active={activeView === 'supplies'} onClick={() => setActiveView('supplies')} />
           <SidebarItem icon={Warehouse} label="Stock por Obra" active={activeView === 'stock'} onClick={() => setActiveView('stock')} />
           <SidebarItem icon={ClipboardList} label="Pizarra NIO" active={activeView === 'nio'} onClick={() => setActiveView('nio')} />
-          <SidebarItem icon={TrendingUp} label="Trazabilidad" active={activeView === 'traceability'} onClick={() => setActiveView('traceability')} />
+          <SidebarItem icon={TrendingUp} label="Trazabilidad" active={activeView === 'traza'} onClick={() => setActiveView('traza')} />
         </aside>
 
         {sidebarOpen && (
@@ -103,7 +107,7 @@ export default function App() {
               <SidebarItem icon={Package} label="Insumos" active={activeView === 'supplies'} onClick={() => { setActiveView('supplies'); setSidebarOpen(false); }} />
               <SidebarItem icon={Warehouse} label="Stock" active={activeView === 'stock'} onClick={() => { setActiveView('stock'); setSidebarOpen(false); }} />
               <SidebarItem icon={ClipboardList} label="NIO Board" active={activeView === 'nio'} onClick={() => { setActiveView('nio'); setSidebarOpen(false); }} />
-              <SidebarItem icon={TrendingUp} label="Trazabilidad" active={activeView === 'traceability'} onClick={() => { setActiveView('traceability'); setSidebarOpen(false); }} />
+              <SidebarItem icon={TrendingUp} label="Trazabilidad" active={activeView === 'traza'} onClick={() => { setActiveView('traza'); setSidebarOpen(false); }} />
             </div>
           </div>
         )}
@@ -119,7 +123,7 @@ export default function App() {
         <button onClick={() => setActiveView('dashboard')} className={`p-2 rounded-full ${activeView === 'dashboard' ? 'text-blue-600' : 'text-slate-400'}`}><LayoutDashboard className="h-6 w-6" /></button>
         <button onClick={() => setActiveView('projects')} className={`p-2 rounded-full ${activeView === 'projects' ? 'text-blue-600' : 'text-slate-400'}`}><Construction className="h-6 w-6" /></button>
         <button onClick={() => setActiveView('nio')} className={`p-2 rounded-full ${activeView === 'nio' ? 'text-blue-600' : 'text-slate-400'}`}><ClipboardList className="h-6 w-6" /></button>
-        <button onClick={() => setActiveView('traceability')} className={`p-2 rounded-full ${activeView === 'traceability' ? 'text-blue-600' : 'text-slate-400'}`}><TrendingUp className="h-6 w-6" /></button>
+        <button onClick={() => setActiveView('traza')} className={`p-2 rounded-full ${activeView === 'traza' ? 'text-blue-600' : 'text-slate-400'}`}><TrendingUp className="h-6 w-6" /></button>
       </nav>
     </div>
   );

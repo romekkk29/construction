@@ -29,7 +29,7 @@ const Header = ({ onOpenSidebar }: { onOpenSidebar: () => void, user?: any }) =>
             <Construction className="h-6 w-6 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight text-slate-800">
-            Apolo Sur<span className="text-blue-600"></span>
+            Logic Cost <span className="text-blue-600"></span>
           </span>
         </div>
       </div>

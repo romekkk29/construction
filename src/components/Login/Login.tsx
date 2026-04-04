@@ -23,7 +23,7 @@ const Login = () => {
         </div>
         
         <h1 className="text-3xl font-black text-slate-800 mb-2">
-          Apolo Sur<span className="text-blue-600">App</span>
+          Logic Cost <span className="text-blue-600">App</span>
         </h1>
         <p className="text-slate-500 mb-8 font-medium">
           Gestión inteligente de costos y logística.

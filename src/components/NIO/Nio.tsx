@@ -421,6 +421,8 @@ export default function NioComponent() {
                               {/* Mapeo de ítems */}
                               {niosSupplier?.filter(el => el.niosId === selectedNio.id)?.map((item, index) => {
                                 const det = supplies?.find(el => el.id === item.supplyId);
+                                console.log(det)
+                                console.log(supplies)
                                 const account = selectedProject?.accounts?.find(a => a.id == item.accountId);
                                 const unitPrice = item.price_individual || 0;
                                 const totalPrice = (unitPrice * item.quantity).toFixed(2);
@@ -477,15 +479,29 @@ export default function NioComponent() {
                                       user.role_id==2||user.role_id==3?
                                       null:
                                       <>
-                                    <div className="md:col-span-1">
+                                    <div className="md:col-span-1 relative">
                                       <input 
-                                        disabled={item.status===2?false:true}
+                                        disabled={item.status !== 2}
                                         type="number"
                                         placeholder="0"
-                                        className="w-full text-xs p-2 rounded-lg border-slate-200 bg-slate-50 text-right font-semibold outline-none focus:ring-1 focus:ring-blue-400"
+                                        className={`w-full text-xs p-2 rounded-lg border-slate-200 bg-slate-50 text-right font-semibold outline-none focus:ring-1 focus:ring-blue-400 ${
+                                          item.price_individual <= det.bestPrice ? 'border-emerald-500 bg-emerald-50' : ''
+                                        }`}
                                         value={item.price_individual || ''}
                                         onChange={(e) => handleItemChange(item.id, 'price_individual', parseFloat(e.target.value))}
                                       />
+                                      
+                                      {/* Notificación con Estilo */}
+                                      {det.bestPrice > 0 && (
+                                        <div className="mt-1 flex flex-col items-end opacity-80 hover:opacity-100 transition-opacity">
+                                        <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                            Mejor precio: ${det.bestPrice}
+                                          </span>
+                                          <span className="text-[11px] text-slate-400 truncate max-w-[80px]">
+                                            Proveedor: {det.bestSupplier}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
 
                                     <div className="md:col-span-1 text-right px-1">
@@ -611,12 +627,25 @@ export default function NioComponent() {
                                         value={item.price_individual || ''}
                                         onChange={(e) => handleItemChange(item.id, 'price_individual', parseFloat(e.target.value))}
                                       />
+                                                                            {/* Notificación con Estilo */}
+                                      {det.bestPrice > 0 && (
+                                        <div className="mt-1 flex flex-col items-end opacity-80 hover:opacity-100 transition-opacity">
+                                          <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                            Mejor precio: ${det.bestPrice}
+                                          </span>
+                                          <span className="text-[11px] text-slate-400 truncate max-w-[80px]">
+                                            Proveedor: {det.bestSupplier}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
 
                                     {/* 7. Precio Total */}
                                     <div className="md:col-span-1 text-right px-1">
                                       <p className="text-xs font-black text-slate-900">${totalPrice}</p>
-                                    </div></>}
+                                    </div>
+
+                                    </>}
 
                                     {/* 8. Botón  */}
                                     <div className="md:col-span-2 pl-1">
@@ -782,7 +811,19 @@ export default function NioComponent() {
                                     <div className="md:col-span-1">
                                       <p className="text-xs font-black text-slate-900">${item.price_individual}</p>
                                       <p className="text-xs font-black text-slate-900">${totalPrice}</p>
-                                    </div></>}
+                                                                            {/* Notificación con Estilo */}
+                                      {det.bestPrice > 0 && (
+                                        <div className="mt-1 flex flex-col items-end opacity-80 hover:opacity-100 transition-opacity">
+                                          <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                            Mejor precio: ${det.bestPrice}
+                                          </span>
+                                          <span className="text-[11px] text-slate-400 truncate max-w-[80px]">
+                                             Proveedor: {det.bestSupplier}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                 </>}
 
                                     {/* 7. Botón  */}
                                     <div className="md:col-span-2 pl-1">

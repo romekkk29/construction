@@ -8,6 +8,8 @@ import * as XLSX from 'xlsx';
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
 import InsumoFormModal from "./InsumoFormModal";
 import DriverComponent from "./Choferes"
+import { useAuth } from './../Login/ProtectedRoute';
+
 // --- Utility Functions ---
 const fileToBase64 = (file: File): Promise<FileData> => {
   return new Promise((resolve, reject) => {
@@ -49,6 +51,7 @@ export default function SupliesComponent() {
     const [searchTerm, setSearchTerm] = useState(""); 
     const [editingSupply, setEditingSupply] = useState<Supply | null>(null);
     const [isChofer, setIsChofer] = useState(false);
+   const { user } = useAuth();
 
     const [isAIProcessing, setIsAIProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -248,7 +251,8 @@ export default function SupliesComponent() {
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Código</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Detalle</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Unidad</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Precio</th>
+                               {user.role_id==1||user.role_id==4||user.role_id==5||user.role_id==6?   
+                                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Precio</th>:null}
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Proveedor</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Acciones</th>
                                 </tr>

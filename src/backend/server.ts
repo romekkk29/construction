@@ -9,13 +9,26 @@ import passport, { use } from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import cookieSession from 'cookie-session';
 import { userInfo } from 'os';
+import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 4001;
-
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com", // El host DEBE ser el de Gmail
+  port: 587,              // El mismo que usas en Go
+  secure: false,          // false para puerto 587 (usa STARTTLS)
+  auth: {
+    user: "informationapp2626@gmail.com",
+    pass: "eawdkaokydmuaefz" // Tu App Password
+  },
+  tls: {
+    // Esto asegura que la conexión no sea rechazada por temas de certificados locales
+    rejectUnauthorized: false 
+  }
+});
 // Configuración de Cookies
 if (!process.env.SESSION_SECRET || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_CLIENT_ID || !process.env.FRONTEND_URL) {
   throw new Error('Variables de entorno no definidas');
@@ -248,7 +261,11 @@ app.get('/api/users', asyncHandler(async (_, res) => {
 
   res.json(users);
 }));
-
+app.get('/api/dashboard', asyncHandler(async (_, res) => {
+  const data = await pgQuery('projects', 'SELECT_DASHBOARD');
+  
+  res.json(data);
+}));
 app.post('/api/users', asyncHandler(async (req, res) => {
   const user: User = req.body;
 
@@ -441,23 +458,51 @@ app.post('/api/nios', asyncHandler(async (req, res) => {
   });
 }));
 app.post('/api/nios_sell', asyncHandler(async (req, res) => {
-  const {niosSupply,account_id} = req.body;
+  const { niosSupply, account_id } = req.body;
 
+  // 1. Obtener el registro actual de la tabla supplies
+  // Asumiendo que niosSupply.nios_supplies_id es la FK hacia supplies.id
+  const currentSupplyId = await pgQuery('nios_supplies', 'SELECT', { id: niosSupply.nios_supplies_id });
+
+  const currentSupply = await pgQuery('supplies', 'SELECT', { id: currentSupplyId.supplies_id });
+
+  console.log(currentSupplyId)
+  console.log(currentSupply)
+  if (currentSupply) {
+    const currentBestPrice = currentSupply.best_price !== null 
+        ? parseFloat(currentSupply.best_price) 
+        : Infinity;
+
+    const newPrice = parseFloat(niosSupply.price_individual);
+
+    // Si es la primera vez (null), newPrice < Infinity será TRUE
+    if (newPrice < currentBestPrice) {
+        const updateBestPriceData = {
+            id: currentSupply.id,
+            best_price: newPrice,
+            best_supplier: niosSupply.supplier
+        };
+        console.log(updateBestPriceData)
+        await pgQuery('supplies', 'UPDATE', updateBestPriceData);
+    }
+  }
+
+  // --- El resto de tu lógica original ---
   const niosSupplyUpdate = {
-    id:niosSupply.nios_supplies_id,
+    id: niosSupply.nios_supplies_id,
     status: 3
   };
+
   const updateAccount = {
-    id:account_id,
+    id: account_id,
     column: 'spent',
     amount: niosSupply.price_total
   };
-  console.log(updateAccount)
-  // me falta el gasto che he ehe je
+
   const createdNioSell = await pgQuery('nios_sells', 'INSERT', niosSupply);
   const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
-  const updateAccountResponse = await pgQuery('cost_accounts', 'UPDATE_COUNT', updateAccount);
-  console.log(updateAccountResponse)
+  await pgQuery('cost_accounts', 'UPDATE_COUNT', updateAccount);
+
   res.status(201).json(createdNioSell);
 }));
 app.post('/api/nios_driver', asyncHandler(async (req, res) => {
@@ -558,9 +603,36 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
     status: 5
   };
   let result = await pgQuery('nios_driver', 'UPDATE', ql>0?dbNIO2:dbNIO);
+  console.log(niosReception)
   if(ql==0){
       const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
       const updateNioSell = await pgQuery('nios_sells', 'UPDATE', niosSellUpdate);
+  }
+  if (ql !== 0) {
+    const mailOptions = {
+      from: '"Sistema LogiCost" <informationapp2626@gmail.com>',
+      to: 'compras@constructoraapolosur.com,ggatica@constructoraapolosur.com,clombardi@constructoraapolosur.com,ggatica47@gmail.com',
+      subject: `⚠️ Alerta de Faltante - NIO ID: ${id}`,
+      html: `
+        <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #e11d48;">Aviso de Faltante Registrado</h2>
+          <p>Se ha registrado un faltante en la recepción de mercadería.</p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p><strong>ID de NIO:</strong> ${id}</p>
+          <p><strong>Cantidad Faltante:</strong> <span style="color: #e11d48; font-weight: bold;">${ql}</span></p>
+          <p><strong>Usuario que reporta:</strong> ${user}</p>
+           <p><strong>Detalle:</strong> ${niosReception.detail}</p>
+           <p><strong>Insumo:</strong> ${niosReception.supplyId}</p>
+           <p><strong>Orden de compra:</strong> ${niosReception.oc_number}</p>
+           <p><strong>Precio de compra individual:</strong> ${niosReception.price_individual}</p>
+           <p><strong>Proveedor</strong> ${niosReception.supplier}</p>
+           <p><strong>Cofer</strong> ${niosReception.driverId}</p>
+
+          <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+      `
+    };// Enviamos el mail de forma asíncrona pero sin bloquear la respuesta al cliente
+    transporter.sendMail(mailOptions).catch(err => console.error("Error enviando email:", err));
   }
   res.json(result);
 }));

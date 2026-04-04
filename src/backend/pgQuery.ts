@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action = 'SELECT' | 'SELECT_NIOS' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
+type Action =  'SELECT_DASHBOARD' | 'SELECT' | 'SELECT_NIOS' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
 
 export const pgQuery = async (
   table: string,
@@ -17,6 +17,47 @@ export const pgQuery = async (
         return rows[0] ?? null;
       }
       return query(`SELECT * FROM ${table} WHERE is_enable = TRUE`);
+    }
+    case 'SELECT_DASHBOARD': {
+      // 1. Obtenemos datos de proyectos: Presupuesto vs Consumido
+      const projectStats = await query(`
+        SELECT 
+          p.id, 
+          p.name,
+          COALESCE(SUM(ca.budgeted), 0) AS total_budgeted,
+          COALESCE(SUM(ca.spent), 0) AS total_spent
+        FROM projects p
+        LEFT JOIN cost_accounts ca ON p.id = ca.project_id AND ca.is_enable = TRUE
+        WHERE p.is_enable = TRUE
+        GROUP BY p.id, p.name
+        ORDER BY p.name ASC
+      `);
+
+      // 2. Obtenemos el conteo de NIOs agrupados por su estado
+      const nioStats = await query(`
+        SELECT 
+          status, 
+          COUNT(*) AS count 
+        FROM nios 
+        WHERE is_enable = TRUE 
+        GROUP BY status
+      `);
+
+      // 3. Calculamos totales rápidos para las tarjetas
+      // Filtramos los que no sean status 5 (Completado)
+      const pendingNios = nioStats
+        .filter((n: any) => n.status !== 5)
+        .reduce((acc: number, curr: any) => acc + parseInt(curr.count), 0);
+
+      return {
+        projects: projectStats, // Array para el BarChart
+        niosByStatus: nioStats,  // Array para el PieChart
+        stats: {
+          activeProjects: projectStats.length,
+          pendingNios: pendingNios,
+          consolidatedStock: 0 // Según tu pedido, queda en 0
+        }
+      };
     }
     case 'SELECT_NIOS': {
       if (data?.id) {

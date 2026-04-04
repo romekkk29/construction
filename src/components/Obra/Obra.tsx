@@ -8,6 +8,7 @@ import { Plus, Pencil,X, Trash2,Loader2,BrainCircuit, Save,Edit3, Clock } from "
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
 import * as XLSX from 'xlsx';
+import { useAuth } from './../Login/ProtectedRoute';
 
 // --- Utility Functions ---
 const fileToBase64 = (file: File): Promise<FileData> => {
@@ -49,6 +50,7 @@ export default function ObraComponent() {
     const [isCostAccountDeleteModalOpen, setIsCostAccountDeleteModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [editingCostAccount, setEditingCostAccount] = useState<Project | null>(null);
+   const { user } = useAuth();
 
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProject,setSelectedProject ] = useState<Project | null>(null);
@@ -355,12 +357,15 @@ export default function ObraComponent() {
                 )}
                     <div className="flex pb-6 justify-between items-center">
                         <h2 className="text-2xl font-bold text-slate-800">Gestión de Obras</h2>
+                       {user.role_id==1||user.role_id==4?   
+
                         <button 
                         onClick={() => setIsProjectModalOpen(true)}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200 transition-all"
                         >
+
                         <Plus className="h-5 w-5" /> Nueva Obra
-                        </button>
+                        </button>:null}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -388,10 +393,9 @@ export default function ObraComponent() {
                                 {project.address}
                                 </p>
                             </div>
-
-                            {/* Acciones */}
+                                    {user.role_id==1||user.role_id==4?
+                            <>
                             <div className="flex gap-2">
-                                {/* Editar */}
                                 <div className="relative group">
                                 <button
                                     type="button"
@@ -422,7 +426,6 @@ export default function ObraComponent() {
                                 </span>
                                 </div>
 
-                                {/* Eliminar */}
                                 <div className="relative group">
                                 <button
                                     type="button"
@@ -452,8 +455,9 @@ export default function ObraComponent() {
                                     Eliminar
                                 </span>
                                 </div>
-                            </div>
-                            </div>            
+                            </div></>:null}                                     
+
+                            </div>           
                             <div className="space-y-4">
                             <div className="flex justify-between text-sm">
                                 <span className="text-slate-500">Consumido</span>
@@ -492,6 +496,7 @@ export default function ObraComponent() {
                                         </div>
 
                                         <div className="flex gap-3">
+                                            {user.role_id==1||user.role_id==4?
                                             <button 
                                                 onClick={() => triggerAIUpload('budget', selectedProject.id)}
                                                 disabled={isAIProcessing}
@@ -500,7 +505,8 @@ export default function ObraComponent() {
                                                 {isAIProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
                                                 {isAIProcessing ? 'Procesando...' : 'Carga IA (PDF/Excel)'}
                                             </button>
-
+                                            :null}
+                                            
                                             <button
                                                 onClick={() => setSelectedProject(null)}
                                                 className="p-2 bg-slate-100 rounded-xl hover:bg-slate-200"
@@ -687,6 +693,7 @@ export default function ObraComponent() {
                                                                             {acc.incidence !== undefined && <BrainCircuit className="inline-block h-3 w-3 ml-1" title="Analizado por IA" />}
                                                                         </span>
                                                                     </td>
+                                                                     {user.role_id==1||user.role_id==4?
                                                                     <td className="px-6 py-4">
                                                                         <div className="flex justify-center items-center gap-2">
                                                                             {isCreated ? (
@@ -704,7 +711,7 @@ export default function ObraComponent() {
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                    </td>
+                                                                    </td>:null}
                                                                 </tr>
                                                             );
                                                         });
@@ -717,7 +724,7 @@ export default function ObraComponent() {
                                             ← Desliza lateralmente para ver más →
                                         </div>
                                     </div>
-                                {/* Botón Guardar Cambios al final */}
+                                {user.role_id==1||user.role_id==4?
                                 <div className="flex gap-3 justify-end pb-12">
                                     <button 
                                         onClick={() => {setIsCostAccountModalOpen(true)}}
@@ -740,7 +747,7 @@ export default function ObraComponent() {
                                         Guardar Cambios del Proyecto
                                     </button>
                                         }
-                                </div>
+                                </div>:null}
                             </div>
                         </div>
                     )}

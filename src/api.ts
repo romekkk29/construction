@@ -112,6 +112,10 @@ export const apiClient = {
     },
   },  
   nios:{
+    dashboard: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/dashboard`);
+      return res.json();
+    },
     list: async (): Promise<any[]> => {
       const res = await fetch(`${API_BASE_URL}/nios`);
       return res.json();
