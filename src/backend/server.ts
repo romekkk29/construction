@@ -21,8 +21,8 @@ const transporter = nodemailer.createTransport({
   port: 587,              // El mismo que usas en Go
   secure: false,          // false para puerto 587 (usa STARTTLS)
   auth: {
-    user: "informationapp2626@gmail.com",
-    pass: "eawdkaokydmuaefz" // Tu App Password
+    user: process.env.EMAIL_SENT,
+    pass: process.env.EMAIL_PASSWORD // Tu App Password
   },
   tls: {
     // Esto asegura que la conexión no sea rechazada por temas de certificados locales
