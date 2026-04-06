@@ -497,7 +497,7 @@ export default function NioComponent() {
                                         <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
                                             Mejor precio: ${det.bestPrice}
                                           </span>
-                                          <span className="text-[11px] text-slate-400 truncate max-w-[80px]">
+                                          <span className="text-[11px] text-slate-400 max-w-[100px]">
                                             Proveedor: {det.bestSupplier}
                                           </span>
                                         </div>
@@ -633,7 +633,7 @@ export default function NioComponent() {
                                           <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
                                             Mejor precio: ${det.bestPrice}
                                           </span>
-                                          <span className="text-[11px] text-slate-400 truncate max-w-[80px]">
+                                          <span className="text-[11px] text-slate-400 max-w-[100px]">
                                             Proveedor: {det.bestSupplier}
                                           </span>
                                         </div>
@@ -817,7 +817,7 @@ export default function NioComponent() {
                                           <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
                                             Mejor precio: ${det.bestPrice}
                                           </span>
-                                          <span className="text-[11px] text-slate-400 truncate max-w-[80px]">
+                                          <span className="text-[11px] text-slate-400 max-w-[100px]">
                                              Proveedor: {det.bestSupplier}
                                           </span>
                                         </div>

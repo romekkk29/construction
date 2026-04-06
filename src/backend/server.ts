@@ -637,7 +637,7 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 app.get('/api/nios', asyncHandler(async (_, res) => {
-  const rows = await pgQuery('nios', 'SELECT_NIOS');
+  const rows = await pgQuery('nios', 'SELECT_NIOS_FIRST');
   const nios = rows.map((row: any) => ({
     id: row.id,
     projectId: row.project_id,
@@ -655,7 +655,7 @@ app.get('/api/nios', asyncHandler(async (_, res) => {
 
 }));
 app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
-  const rows = await pgQuery('nios_supplies', 'SELECT_NIOS');
+  const rows = await pgQuery('nios_supplies', 'SELECT_NIOS_SECOND');
   const nios_supplier = rows.map((row: any) => ({
     id: row.id,
     niosId: row.nios_id,
@@ -670,7 +670,7 @@ app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
 
 }));
 app.get('/api/nios_sells', asyncHandler(async (_, res) => {
-  const rows = await pgQuery('nios_sells', 'SELECT_NIOS');
+const rows = await pgQuery('nios_sells', 'SELECT_NIOS_THIRD');
   const nios_sells = rows.map((row: any) => ({
     id: row.id,
     nios_supplies_id: row.nios_supplies_id,
@@ -685,7 +685,7 @@ app.get('/api/nios_sells', asyncHandler(async (_, res) => {
   res.json(nios_sells);
 }));
 app.get('/api/nios_driver', asyncHandler(async (_, res) => {
-  const rows = await pgQuery('nios_driver', 'SELECT_NIOS');
+const rows = await pgQuery('nios_driver', 'SELECT_NIOS_FOURTH');
   const nios_driver = rows.map((row: any) => ({
     nios_drivers_id: row.id,
     nios_sells_id: row.nios_sells_id,

@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action =  'SELECT_DASHBOARD' | 'SELECT' | 'SELECT_NIOS' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
+type Action =  'SELECT_DASHBOARD' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
 
 export const pgQuery = async (
   table: string,
@@ -35,12 +35,14 @@ export const pgQuery = async (
 
       // 2. Obtenemos el conteo de NIOs agrupados por su estado
       const nioStats = await query(`
-        SELECT 
-          status, 
-          COUNT(*) AS count 
-        FROM nios 
-        WHERE is_enable = TRUE 
-        GROUP BY status
+          SELECT 
+            n.status, 
+            COUNT(n.id) AS count 
+          FROM nios n
+          INNER JOIN projects p ON n.project_id = p.id
+          WHERE n.is_enable = TRUE 
+            AND p.is_enable = TRUE
+          GROUP BY n.status
       `);
 
       // 3. Calculamos totales rápidos para las tarjetas
@@ -69,6 +71,72 @@ export const pgQuery = async (
       }
       return query(`SELECT * FROM ${table} WHERE is_enable = TRUE AND status <> 5`);
     }
+    case 'SELECT_NIOS_FIRST': {
+      if (data?.id) {
+        const rows = await query(
+          `SELECT * FROM ${table} WHERE id = $1`,
+          [data.id]
+        );
+        return rows[0] ?? null;
+      }
+      return query(`SELECT n.* 
+                  FROM nios n
+                  INNER JOIN projects p ON n.project_id = p.id
+                  WHERE n.is_enable = TRUE 
+                    AND p.is_enable = TRUE 
+                    AND n.status <> 5`);
+    }
+    case 'SELECT_NIOS_SECOND': {
+      if (data?.id) {
+        const rows = await query(
+          `SELECT * FROM ${table} WHERE id = $1`,
+          [data.id]
+        );
+        return rows[0] ?? null;
+      }
+      return query(`SELECT n.* 
+                  FROM nios_supplies n
+                  INNER JOIN nios ni ON ni.id = n.nios_id
+                  INNER JOIN projects p ON ni.project_id = p.id
+                  WHERE n.is_enable = TRUE 
+                    AND p.is_enable = TRUE 
+                    AND n.status <> 5`);
+    }
+    case 'SELECT_NIOS_THIRD': {
+      if (data?.id) {
+        const rows = await query(
+          `SELECT * FROM ${table} WHERE id = $1`,
+          [data.id]
+        );
+        return rows[0] ?? null;
+      }
+      return query(`SELECT n.* 
+                  FROM nios_sells n
+                  INNER JOIN nios_supplies ne ON n.nios_supplies_id = ne.id
+                  INNER JOIN nios ni ON ni.id = ne.nios_id
+                  INNER JOIN projects p ON ni.project_id = p.id
+                  WHERE n.is_enable = TRUE 
+                    AND p.is_enable = TRUE 
+                    AND n.status <> 5`);
+    }
+    case 'SELECT_NIOS_FOURTH': {
+      if (data?.id) {
+        const rows = await query(
+          `SELECT * FROM ${table} WHERE id = $1`,
+          [data.id]
+        );
+        return rows[0] ?? null;
+      }
+      return query(`SELECT n.* 
+                  FROM  nios_driver n
+                  INNER JOIN nios_sells na ON n.nios_sells_id = na.id
+                  INNER JOIN nios_supplies ne ON na.nios_supplies_id = ne.id
+                  INNER JOIN nios ni ON ni.id = ne.nios_id
+                  INNER JOIN projects p ON ni.project_id = p.id
+                  WHERE n.is_enable = TRUE 
+                    AND p.is_enable = TRUE 
+                    AND n.status <> 5`);
+    }     
     case 'SELECT_NIOS_COMPLETED': {
       const sql = `
         SELECT 
@@ -104,8 +172,10 @@ export const pgQuery = async (
         INNER JOIN nios_sells ns ON nd.nios_sells_id = ns.id
         INNER JOIN nios_supplies nsup ON ns.nios_supplies_id = nsup.id
         INNER JOIN nios n ON nsup.nios_id = n.id
+        INNER JOIN projects p ON n.project_id = p.id 
         WHERE nd.status = 5 
           AND nd.is_enable = TRUE
+          AND p.is_enable = TRUE
           AND nd.reception_date >= NOW() - INTERVAL '30 days'
         GROUP BY n.id, n.project_id, n.creation_date, n.need_date, n.status, 
                 n.is_enable, n.user_id, n.to_procurement_at, n.to_logistics_at, 
