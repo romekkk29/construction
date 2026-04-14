@@ -660,8 +660,14 @@ export default function ObraComponent() {
                                                                     <td className="px-6 py-4 text-slate-600 text-sm">{acc.detail}</td>
                                                                     <td className="px-6 py-4 text-slate-800">${acc.budgeted.toLocaleString()}</td>
                                                                     <td className="px-6 py-4 text-red-600 font-medium">${acc.spent.toLocaleString()}</td>
-                                                                    <td className="px-6 py-4 text-emerald-600 font-bold">${(acc.budgeted - acc.spent).toLocaleString()}</td>
-                                                                    <td className="px-6 py-4 text-right">
+                                                                            <td className={`px-6 py-4 font-bold ${
+                                                                            (acc.budgeted - acc.spent) < 0 
+                                                                                ? 'text-orange-600' 
+                                                                                : 'text-emerald-600'
+                                                                            }`}>
+                                                                            ${(acc.budgeted - acc.spent).toLocaleString()}
+                                                                            </td> 
+                                                                            <td className="px-6 py-4 text-right">
                                                                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${acc.incidence !== undefined ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
                                                                             {incidence.toFixed(2)}%
                                                                             {acc.incidence !== undefined && <BrainCircuit className="inline-block h-3 w-3 ml-1" title="Analizado por IA" />}
