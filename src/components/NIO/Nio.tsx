@@ -3,7 +3,7 @@ import React, {useState,useEffect,useRef} from "react";
 import NioFormModal from "./NewNioFormModal";
 import { Role, Project,User,CostAccount, Supply, NIOS, NIOSupplier,NIOStatus,Driver} from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { Plus, ClipboardList,X, Truck,Send,BrainCircuit, CheckCircle2, Clock,Construction,ArrowRight,ArrowLeft,Package,Calendar} from "lucide-react";
+import { RefreshCw,Plus, ClipboardList,X, Truck,Send,BrainCircuit, CheckCircle2, Clock,Construction,ArrowRight,ArrowLeft,Package,Calendar} from "lucide-react";
 import { useAuth } from './../Login/ProtectedRoute';
 
 export default function NioComponent() {
@@ -24,6 +24,19 @@ export default function NioComponent() {
     const [refreshCount, setRefreshCount] = useState(0);
     const [users, setUsers] = useState<User[]>([]);
     const [loading,setLoading]= useState<Boolean>(false);
+    const formatCurrency = (value) => {
+      // 1. Convertimos a número por si acaso es un string
+      const number = parseFloat(value);
+
+      // 2. Validamos que sea un número válido
+      if (isNaN(number)) return "0,00";
+
+      // 3. Aplicamos el formato
+      return number.toLocaleString('es-AR', { // 'es-AR' o 'de-DE' usan punto para miles
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    };
     const  handleOpenNio=()=>{
         if(user.role_id!==1&&user.role_id!==2&&user.role_id!==3){
             alert("sin permisos")
@@ -31,28 +44,62 @@ export default function NioComponent() {
         }
         setIsProjectModalOpen(true)
       } 
-    const handleSentDriver=async(item)=>{
-        if(user.role_id!==1&&user.role_id!==5&&user.role_id!==6){
-            alert("sin permisos")
-            return
-        }
-      const payload={
-        niosDriver:item,
-        user:user.id
+    const handleSentDriver = async (item) => {
+      // 1. Buscamos la data necesaria
+      let driver = drivers?.find(d => d.id == item.driverId);
+      let prod = supplies?.find(d => d.id == item.supplyId);
+
+      // 2. Validación de permisos
+      if (user.role_id !== 1 && user.role_id !== 5 && user.role_id !== 6) {
+        alert("Sin permisos");
+        return;
       }
+
+      // 3. Preparación del mensaje de WhatsApp
+      if (driver && driver.phone) {
+        const message = `*Nueva Orden de Retiro/Entrega*%0A%0A` +
+          `*Proveedor:* ${item.supplier}%0A` +
+          `*Producto:* ${prod?.detail || 'N/A'}%0A` +
+          `*Cantidad:* ${item.quantity} ${prod?.unit || ''}%0A` +
+          `*N° Orden:* ${item.oc_number}%0A` +
+          `*Nota:* ${item.detail || 'Sin notas'}%0A%0A` +
+          `_Por favor, confirmar recepción._`;
+
+        // Limpiamos el número (quitamos espacios o caracteres especiales si los hay)
+        const cleanPhone = driver.phone.replace(/\D/g, '');
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${message}`;
+
+        // Abrimos WhatsApp en una nueva pestaña
+        window.open(whatsappUrl, '_blank');
+      } else {
+        console.warn("El conductor no tiene un teléfono registrado.");
+      }
+
+      // 4. Actualización de estado local (Optimistic Update)
       setNiosSupplier(prev => prev.map(it => {
         if (it.id === item.id) {
-          return { ...it, status: 4, driver_date:new Date().toLocaleDateString()};
+          return { ...it, status: 4, driver_date: new Date().toLocaleDateString() };
         }
         return it;
       }));
+
+      // 5. Llamada a la API
       try {
-          const response = await apiClient.nios.createDriver(payload);
+        const payload = {
+          niosDriver: item,
+          user: user.id
+        };
+        await apiClient.nios.createDriver(payload);
+        
+        // El refresh sucede después de la redirección y el guardado
+        setRefreshCount(prev => prev + 1);
+      } catch (err) {
+        alert(err.message || 'Error al procesar la solicitud');
+      }
+    };
+    const handleRefres=()=>{
           setRefreshCount(prev => prev + 1);
-      } catch (err: any) {
-          alert(err.message || 'Error');
-      }      
-    }
+    }    
     const handleReceptionSave=async(item)=>{
         if(user.role_id!==1&&user.role_id!==2&&user.role_id!==3){
             alert("sin permisos")
@@ -421,8 +468,6 @@ export default function NioComponent() {
                               {/* Mapeo de ítems */}
                               {niosSupplier?.filter(el => el.niosId === selectedNio.id)?.map((item, index) => {
                                 const det = supplies?.find(el => el.id === item.supplyId);
-                                console.log(det)
-                                console.log(supplies)
                                 const account = selectedProject?.accounts?.find(a => a.id == item.accountId);
                                 const unitPrice = item.price_individual || 0;
                                 const totalPrice = (unitPrice * item.quantity).toFixed(2);
@@ -479,34 +524,36 @@ export default function NioComponent() {
                                       user.role_id==2||user.role_id==3?
                                       null:
                                       <>
-                                    <div className="md:col-span-1 relative">
-                                      <input 
-                                        disabled={item.status !== 2}
-                                        type="number"
-                                        placeholder="0"
-                                        className={`w-full text-xs p-2 rounded-lg border-slate-200 bg-slate-50 text-right font-semibold outline-none focus:ring-1 focus:ring-blue-400 ${
-                                          item.price_individual <= det.bestPrice ? 'border-emerald-500 bg-emerald-50' : ''
-                                        }`}
-                                        value={item.price_individual || ''}
-                                        onChange={(e) => handleItemChange(item.id, 'price_individual', parseFloat(e.target.value))}
-                                      />
-                                      
-                                      {/* Notificación con Estilo */}
-                                      {det.bestPrice > 0 && (
-                                        <div className="mt-1 flex flex-col items-end opacity-80 hover:opacity-100 transition-opacity">
-                                        <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
-                                            Mejor precio: ${det.bestPrice}
-                                          </span>
-                                          <span className="text-[11px] text-slate-400 max-w-[100px]">
-                                            Proveedor: {det.bestSupplier}
-                                          </span>
+                                        <div className="md:col-span-1 relative">
+                                          <input 
+                                            disabled={item.status !== 2}
+                                            type="number" // Mantenemos number para que el teclado móvil sea numérico y la DB reciba el float
+                                            placeholder="0"
+                                            className={`w-full text-xs p-2 rounded-lg border-slate-200 bg-slate-50 text-right font-semibold outline-none focus:ring-1 focus:ring-blue-400 ${
+                                              item.price_individual <= det.bestPrice ? 'border-emerald-500 bg-emerald-50' : ''
+                                            }`}
+                                            value={item.price_individual || ''}
+                                            onChange={(e) => handleItemChange(item.id, 'price_individual', parseFloat(e.target.value))}
+                                          />
+                                          
+                                          {/* Notificación con Estilo */}
+                                          {det.bestPrice > 0 && (
+                                            <div className="mt-1 flex flex-col items-end opacity-80 hover:opacity-100 transition-opacity">
+                                              <span className="text-[12px] font-bold text-amber-800 bg-amber-100/50 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                                {/* APLICADO AQUÍ */}
+                                                Mejor precio: ${formatCurrency(det.bestPrice)}
+                                              </span>
+                                              <span className="text-[11px] text-slate-400 max-w-[100px]">
+                                                Proveedor: {det.bestSupplier}
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
-                                      )}
-                                    </div>
 
-                                    <div className="md:col-span-1 text-right px-1">
-                                      <p className="text-xs font-black text-slate-900">${totalPrice}</p>
-                                    </div>
+                                        <div className="md:col-span-1 text-right px-1">
+                                          {/* APLICADO AQUÍ */}
+                                          <p className="text-xs font-black text-slate-900">${formatCurrency(totalPrice)}</p>
+                                        </div>
                                       </>
                                     }
                                     {/* 8. Botón (Suma total de 12 columnas lograda) */}
@@ -642,7 +689,7 @@ export default function NioComponent() {
 
                                     {/* 7. Precio Total */}
                                     <div className="md:col-span-1 text-right px-1">
-                                      <p className="text-xs font-black text-slate-900">${totalPrice}</p>
+                                      <p className="text-xs font-black text-slate-900">${formatCurrency(totalPrice)}</p>
                                     </div>
 
                                     </>}
@@ -809,8 +856,8 @@ export default function NioComponent() {
                                       <>
                                     {/* 6. Precio Unitario */}
                                     <div className="md:col-span-1">
-                                      <p className="text-xs font-black text-slate-900">${item.price_individual}</p>
-                                      <p className="text-xs font-black text-slate-900">${totalPrice}</p>
+                                      <p className="text-xs font-black text-slate-900">${formatCurrency(item.price_individual)}</p>
+                                      <p className="text-xs font-black text-slate-900">${formatCurrency(totalPrice)}</p>
                                                                             {/* Notificación con Estilo */}
                                       {det.bestPrice > 0 && (
                                         <div className="mt-1 flex flex-col items-end opacity-80 hover:opacity-100 transition-opacity">
@@ -1179,14 +1226,12 @@ export default function NioComponent() {
           }
           updatedList.push(nc)
         });
-        console.log(user)
         let projectsFilerts
         if(user.role_id ==2 || user.role_id ==3){
            projectsFilerts=projData.filter(el=>el.projectManager==user.id || el.generalManager==user.id)
         }else{
           projectsFilerts=projData
         }
-        console.log(projectsFilerts)
 
         // 6. Actualización de Estados de React
         setProjects(projectsFilerts);
@@ -1225,57 +1270,84 @@ export default function NioComponent() {
                       onSubmit={handleCreateNio}
                       />
   
-                      <div className="flex pb-6 justify-between items-center gap-4">
-                      {/* Título */}
-                      <h2 className="text-2xl font-bold text-slate-800 shrink-0">
+                    <div className="flex flex-col sm:flex-row pb-6 justify-between items-stretch sm:items-center gap-4">
+                      {/* Título y Botón Refresh (Agrupados en móvil para ahorrar espacio) */}
+                      <div className="flex justify-between items-center gap-4">
+                        <h2 className="text-xl md:text-2xl font-bold text-slate-800 shrink-0">
                           Pizarra NIO
-                      </h2>
+                        </h2>
+                        
+                        {/* Botón Refrescar (visible solo en móvil aquí, o siempre) */}
+                        <button 
+                          onClick={() => handleRefres()}
+                          className={`sm:hidden p-2 rounded-xl text-white transition-all ${!selectedProject ? 'bg-slate-400' : 'bg-blue-600'}`}
+                        >
+                          <RefreshCw className="h-5 w-5" />
+                        </button>
+                      </div>
 
-                      {/* Selector Centralizado con Datos Dinámicos */}
-                      <div className="relative flex-1 max-w-xs mx-auto">
+                      {/* Contenedor de Acciones: Selector + Botones */}
+                      <div className="flex flex-col sm:flex-row flex-1 gap-3 items-stretch sm:items-center w-full sm:max-w-2xl">
+                        
+                        {/* Selector Centralizado */}
+                        <div className="relative flex-1">
                           <select 
-                          value={selectedProject?.id || ""} 
-                          onChange={handleProjectChange}
-                          className={`
+                            value={selectedProject?.id || ""} 
+                            onChange={handleProjectChange}
+                            className={`
                               w-full pl-4 pr-10 py-2.5 cursor-pointer appearance-none
                               text-sm font-semibold rounded-xl border-2 transition-all outline-none
                               ${!selectedProject 
-                                  ? "bg-slate-50 border-slate-200 text-slate-400" 
-                                  : "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm shadow-emerald-100"
+                                ? "bg-slate-50 border-slate-200 text-slate-400" 
+                                : "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm shadow-emerald-100"
                               }
                               hover:border-emerald-400 focus:ring-2 focus:ring-emerald-200
-                          `}
+                            `}
                           >
-                          {/* Opción por defecto (valor null/vacío) */}
-                          <option value="" disabled>Seleccionar obra...</option>
-                          
-                          {/* Mapeo de proyectos desde el estado */}
-                          {projects.map((project) => (
+                            <option value="" disabled>Seleccionar obra...</option>
+                            {projects.map((project) => (
                               <option key={project.id} value={project.id}>
-                              {project.name}
+                                {project.name}
                               </option>
-                          ))}
+                            ))}
                           </select>
                           
                           {/* Flecha decorativa */}
                           <div className={`pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 ${!selectedProject ? 'text-slate-400' : 'text-emerald-600'}`}>
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                               <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                          </svg>
+                            </svg>
                           </div>
-                      </div>
+                        </div>
 
-                      {/* Botón de Acción */}
-                      <button 
-                          disabled={selectedProject?false:true}
-                          onClick={() => handleOpenNio()}
-                          className={`hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200 transition-all shrink-0 
-                            ${!selectedProject ? 'bg-gray-600' : 'bg-blue-600'}
+                        {/* Botones de Acción */}
+                        <div className="flex gap-2 shrink-0">
+                          {/* Refrescar (Desktop) */}
+                          <button 
+                            onClick={() => handleRefres()}
+                            className={`hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-medium transition-all shadow-lg shadow-blue-100
+                              ${!selectedProject ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700'}
                             `}
-                      >
-                          <Plus className="h-5 w-5" /> Iniciar NIO
-                      </button>
+                          >
+                            Refrescar
+                          </button>
+
+                          {/* Iniciar NIO */}
+                          <button 
+                            disabled={!selectedProject}
+                            onClick={() => handleOpenNio()}
+                            className={`flex-1 sm:flex-none justify-center items-center px-6 py-2.5 rounded-xl text-white font-bold flex gap-2 transition-all shadow-lg
+                              ${!selectedProject 
+                                ? 'bg-slate-300 cursor-not-allowed shadow-none' 
+                                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'}
+                            `}
+                          >
+                            <Plus className="h-5 w-5" /> 
+                            <span className="whitespace-nowrap">Iniciar NIO</span>
+                          </button>
+                        </div>
                       </div>
+                    </div>
                       {
                         !loading?
                        <div className="mx-auto max-w-7xl">

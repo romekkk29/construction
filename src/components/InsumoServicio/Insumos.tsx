@@ -56,7 +56,19 @@ export default function SupliesComponent() {
     const [isAIProcessing, setIsAIProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [currentUploadType, setCurrentUploadType] = useState<{type: 'budget' | 'supplies', id?: string} | null>(null);
-    
+        const formatCurrency = (value) => {
+      // 1. Convertimos a número por si acaso es un string
+      const number = parseFloat(value);
+
+      // 2. Validamos que sea un número válido
+      if (isNaN(number)) return "-";
+
+      // 3. Aplicamos el formato
+      return number.toLocaleString('es-AR', { // 'es-AR' o 'de-DE' usan punto para miles
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    };
     const filteredSupplies = supplies.filter((supply) => {
       const searchLower = searchTerm.toLowerCase();
       return (
@@ -265,7 +277,7 @@ export default function SupliesComponent() {
                                     <td className="px-6 py-4 font-mono text-sm text-slate-600">{supply.code}</td>
                                     <td className="px-6 py-4 font-medium text-slate-800">{supply.detail}</td>
                                     <td className="px-6 py-4 text-slate-500">{supply.unit}</td>
-                                    <td className="px-6 py-4 text-emerald-600 font-bold">${supply.bestPrice?.toLocaleString() || '-'}</td>
+                                    <td className="px-6 py-4 text-emerald-600 font-bold">${formatCurrency(supply.bestPrice)}</td>
                                     <td className="px-6 py-4 text-slate-800">{supply.bestSupplier || '-'}</td>
                                    <td className="px-6 py-4">
                                     <div className="flex justify-center items-center gap-2">
