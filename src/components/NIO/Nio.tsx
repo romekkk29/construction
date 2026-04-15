@@ -58,6 +58,9 @@ export default function NioComponent() {
       // 3. Preparación del mensaje de WhatsApp
       if (driver && driver.phone) {
         const message = `*Nueva Orden de Retiro/Entrega*%0A%0A` +
+          `*Obra a entregar:* ${selectedProject.name}%0A` +
+          `*Dirección:* ${selectedProject.address}%0A` +
+
           `*Proveedor:* ${item.supplier}%0A` +
           `*Producto:* ${prod?.detail || 'N/A'}%0A` +
           `*Cantidad:* ${item.quantity} ${prod?.unit || ''}%0A` +
