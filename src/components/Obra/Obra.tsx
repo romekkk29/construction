@@ -412,7 +412,65 @@ export default function ObraComponent() {
                                 {/* Botones de acción (Edit/Delete) - Mantengo tu lógica de roles */}
                                 {(user.role_id === 1 || user.role_id === 4) && (
                                     <div className="flex gap-2">
-                                    {/* ... Tus botones de Pencil y Trash ... */}
+                                                                   <div className="relative group">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingProject(project);
+                                    setIsProjectModalOpen(true);
+                                    }}
+                                    className="
+                                    p-2 rounded-lg border border-slate-200
+                                    text-slate-600 hover:bg-slate-100 hover:text-blue-600
+                                    transition
+                                    "
+                                >
+                                    <Pencil size={16} />
+                                </button>
+
+                                <span
+                                    className="
+                                    pointer-events-none
+                                    absolute -top-8 right-1/2 translate-x-1/2
+                                    whitespace-nowrap bg-slate-800 text-white
+                                    text-xs px-2 py-1 rounded
+                                    opacity-0 group-hover:opacity-100 transition
+                                    "
+                                >
+                                    Editar
+                                </span>
+                                </div>
+
+                                <div className="relative group">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProject(project);
+                                    setIsProjectDeleteModalOpen(true);
+                                    }}
+                                    className="
+                                    p-2 rounded-lg border border-slate-200
+                                    text-slate-600 hover:bg-red-50 hover:text-red-600
+                                    transition
+                                    "
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+
+                                <span
+                                    className="
+                                    pointer-events-none
+                                    absolute -top-8 right-1/2 translate-x-1/2
+                                    whitespace-nowrap bg-slate-800 text-white
+                                    text-xs px-2 py-1 rounded
+                                    opacity-0 group-hover:opacity-100 transition
+                                    "
+                                >
+                                    Eliminar
+                                </span>
+                                </div>
                                     </div>
                                 )}
                                 </div>

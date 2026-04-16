@@ -81,10 +81,8 @@ passport.use(
         if (!email) {
           return done(new Error("No se pudo obtener el email de Google"), null);
         }
-        console.log(email)
         // Buscamos en tu DB usando tu función pgQuery
         const users = await pgQuery('users', 'SELECT_BY_EMAIL', {email});
-        console.log(users)
         if (users && users.length > 0) {
 
           // El usuario existe en la DB, permitimos el acceso
@@ -319,7 +317,7 @@ app.delete('/api/users/:id', asyncHandler(async (req, res) => {
 
 app.get('/api/costaccounts', asyncHandler(async (req, res) => {
   // Capturamos el projectId de la URL (ej: ?projectId=10)
-  const { projectId } = req.query;
+const projectId = parseInt(req.query.projectId, 10);  
   // Pasamos el ID a pgQuery dentro del objeto 'data'
   // Nota: Si projectId no existe, pgQuery ejecutará el SELECT general
   const rows = await pgQuery('cost_accounts', 'SELECT_COST_ACCOUNT', { 
@@ -466,8 +464,6 @@ app.post('/api/nios_sell', asyncHandler(async (req, res) => {
 
   const currentSupply = await pgQuery('supplies', 'SELECT', { id: currentSupplyId.supplies_id });
 
-  console.log(currentSupplyId)
-  console.log(currentSupply)
   if (currentSupply) {
     const currentBestPrice = currentSupply.best_price !== null 
         ? parseFloat(currentSupply.best_price) 
@@ -482,7 +478,6 @@ app.post('/api/nios_sell', asyncHandler(async (req, res) => {
             best_price: newPrice,
             best_supplier: niosSupply.supplier
         };
-        console.log(updateBestPriceData)
         await pgQuery('supplies', 'UPDATE', updateBestPriceData);
     }
   }
@@ -523,7 +518,7 @@ app.post('/api/nios_driver', asyncHandler(async (req, res) => {
   res.status(201).json(createdNioSell);
 }));
 app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const { nioSuppliers,user } = req.body;
 
   const dbNIO = {
@@ -553,7 +548,7 @@ app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 app.put('/api/nios_finish_seller/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const dbNIO = {
     id,
     status: 3,
@@ -566,7 +561,7 @@ app.put('/api/nios_finish_seller/:id', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 app.put('/api/nios_finish_logic/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const dbNIO = {
     id,
     status: 4,
@@ -579,7 +574,7 @@ app.put('/api/nios_finish_logic/:id', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const { niosReception,user } = req.body;
   let ql=parseFloat(niosReception.quantity_less)
   const dbNIO = {
@@ -603,7 +598,12 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
     status: 5
   };
   let result = await pgQuery('nios_driver', 'UPDATE', ql>0?dbNIO2:dbNIO);
-  console.log(niosReception)
+  let userR = await pgQuery('users', 'SELECT', { id: user });
+  let niosR = await pgQuery('nios', 'SELECT', { id: id });
+  let obr = await pgQuery('projects', 'SELECT', { id: niosR.project_id });
+  let chof = await pgQuery('drivers', 'SELECT', { id: niosReception.driverId });
+  let suu = await pgQuery('supplies', 'SELECT', { id: niosReception.supplyId });
+
   if(ql==0){
       const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
       const updateNioSell = await pgQuery('nios_sells', 'UPDATE', niosSellUpdate);
@@ -618,15 +618,17 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
           <h2 style="color: #e11d48;">Aviso de Faltante Registrado</h2>
           <p>Se ha registrado un faltante en la recepción de mercadería.</p>
           <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p><strong>Obra:</strong> ${obr.name}</p>          
           <p><strong>ID de NIO:</strong> ${id}</p>
           <p><strong>Cantidad Faltante:</strong> <span style="color: #e11d48; font-weight: bold;">${ql}</span></p>
-          <p><strong>Usuario que reporta:</strong> ${user}</p>
+          <p><strong>Usuario que reporta:</strong> ${userR.name}</p>
            <p><strong>Detalle:</strong> ${niosReception.detail}</p>
-           <p><strong>Insumo:</strong> ${niosReception.supplyId}</p>
+           <p><strong>Insumo:</strong> ${suu.detail}</p>
            <p><strong>Orden de compra:</strong> ${niosReception.oc_number}</p>
            <p><strong>Precio de compra individual:</strong> ${niosReception.price_individual}</p>
            <p><strong>Proveedor</strong> ${niosReception.supplier}</p>
-           <p><strong>Cofer</strong> ${niosReception.driverId}</p>
+           <p><strong>Cofer</strong> ${chof.name}</p>
+          
 
           <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
         </div>
@@ -704,7 +706,7 @@ app.get('/api/nios_completed', asyncHandler(async (_, res) => {
   res.json(rows);
 }));
 app.put('/api/nios_finish_nio/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const dbNIO = {
     id,
     status: 5,
@@ -747,7 +749,7 @@ app.post('/api/supplies', asyncHandler(async (req, res) => {
 }));
 
 app.put('/api/supplies/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const supply: Supply = req.body;
 
   const dbSupply = {
