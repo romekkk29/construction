@@ -3,7 +3,7 @@ import React, {useState,useEffect,useRef} from "react";
 import NioFormModal from "./NewNioFormModal";
 import { Role, Project,User,CostAccount, Supply, NIOS, NIOSupplier,NIOStatus,Driver} from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { RefreshCw,Plus, ClipboardList,X, Truck,Send,BrainCircuit, CheckCircle2, Clock,Construction,ArrowRight,ArrowLeft,Package,Calendar} from "lucide-react";
+import { RefreshCw,Plus,Pencil, ClipboardList,X, Truck,Send,BrainCircuit, CheckCircle2, Clock,Construction,ArrowRight,ArrowLeft,Package,Calendar} from "lucide-react";
 import { useAuth } from './../Login/ProtectedRoute';
 
 export default function NioComponent() {
@@ -92,8 +92,12 @@ export default function NioComponent() {
           niosDriver: item,
           user: user.id
         };
+        const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status===3)
         await apiClient.nios.createDriver(payload);
-        
+        if(everySup &&everySup.length===0){
+          handleTransitAllLogicT()
+          }
+          
         // El refresh sucede después de la redirección y el guardado
         setRefreshCount(prev => prev + 1);
       } catch (err) {
@@ -112,6 +116,10 @@ export default function NioComponent() {
         alert("Cantidad faltante ?")
         return
       }
+      if(parseFloat(item.quantity_less)>item.quantity){
+        alert("Indique una cantidad menor o igual a la solicitada")
+        return
+      }
       const payload={
         niosReception:item,
         user:user.id,
@@ -127,6 +135,11 @@ export default function NioComponent() {
       }
       try {
           const response = await apiClient.nios.createReception(payload);
+          const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status===4)
+          
+           if(everySup &&everySup.length===0 && item.quantity_less==0){
+            handleFinihsLogicT()
+           }
           alert("Guardado correctamente")
           setRefreshCount(prev => prev + 1);
       } catch (err: any) {
@@ -162,7 +175,13 @@ export default function NioComponent() {
         return it;
       }));
       try {
-          const response = await apiClient.nios.createSell(p);
+
+           const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status===2)
+           const response = await apiClient.nios.createSell(p);
+           if(everySup &&everySup.length===0){
+            handleGoAllLogicT()
+           }
+          
           setRefreshCount(prev => prev + 1);
       } catch (err: any) {
           alert(err.message || 'Error');
@@ -192,7 +211,22 @@ export default function NioComponent() {
           alert(err.message || 'Error');
       }      
     }
+    const handleGoAllLogicT =async()=>{
+      if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
+        alert("sin permisos")
+        return
+      }
+    const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
 
+
+      try {
+          const response = await apiClient.nios.nios_finish_seller({id:selectedNio.id});
+          setSelectedNio(null)
+          setRefreshCount(prev => prev + 1);
+      } catch (err: any) {
+          alert(err.message || 'Error');
+      }      
+    }
     const handleTransitAllLogic =async()=>{
         if(user.role_id!==1&&user.role_id!==5&&user.role_id!==6){
             alert("sin permisos")
@@ -218,6 +252,25 @@ export default function NioComponent() {
             alert(err.message || 'Error');
       }         
     }    
+      const handleTransitAllLogicT =async()=>{
+        if(user.role_id!==1&&user.role_id!==5&&user.role_id!==6){
+            alert("sin permisos")
+            return
+        }
+      const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
+
+
+        try {
+            if(selectedNio.to_logistics_at){
+                const response2 = await apiClient.nios.nios_finish_seller({id:selectedNio.id});
+            }
+            const response = await apiClient.nios.nios_finish_logic({id:selectedNio.id});
+            setSelectedNio(null)
+            setRefreshCount(prev => prev + 1);
+        } catch (err: any) {
+            alert(err.message || 'Error');
+      }         
+    } 
     const handleFinihsLogic =async()=>{
         if(user.role_id!==1&&user.role_id!==2&&user.role_id!==3){
             alert("sin permisos")
@@ -240,6 +293,22 @@ export default function NioComponent() {
             alert(err.message || 'Error');
       }         
     }    
+    const handleFinihsLogicT =async()=>{
+        if(user.role_id!==1&&user.role_id!==2&&user.role_id!==3){
+            alert("sin permisos")
+            return
+        }
+      const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
+
+
+        try {
+            const response = await apiClient.nios.nios_finish_nio({id:selectedNio.id});
+            setSelectedNio(null)
+            setRefreshCount(prev => prev + 1);
+        } catch (err: any) {
+            alert(err.message || 'Error');
+      }         
+    } 
     const handleItemChange = (itemId, field, value) => {
       setNiosSupplier(prev => prev.map(item => {
         if (item.id === itemId) {
