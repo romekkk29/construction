@@ -97,24 +97,20 @@ export const pgQuery = async (
             nd.detail AS defect_detail,
             nd.status AS defect_status,
 
-            -- 👤 USER
             u.id AS user_id,
             u.role_id,
             u.name,
             u.last_name,
             u.email,
 
-            -- 📦 NIO
             n.*,
 
-            -- 📦 NIO SUPPLIES
             ns.id AS nios_supplies_id,
             ns.supplies_id,
             ns.quantity,
             ns.detail AS supply_detail,
             ns.account_id,
 
-            -- 🧱 SUPPLIES
             s.id AS supply_id,
             s.code,
             s.detail AS supply_name,
@@ -122,7 +118,6 @@ export const pgQuery = async (
             s.best_price,
             s.best_supplier,
 
-            -- 💰 SELLS
             nsell.id AS sell_id,
             nsell.oc_number,
             nsell.supplier,

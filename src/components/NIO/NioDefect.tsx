@@ -16,7 +16,7 @@ export default function NioDefectComponent() {
     const fetchData = async () => {
       const [projData, niosDefect] = await Promise.all([
         apiClient.projects.list(),
-        apiClient.nios.list_nios_defect({ limit: 50, offset: 0 }),
+        apiClient.nios.list_nios_defect({ limit: 10, offset: 0 }),
       ]);
 
       setProjects(projData);
