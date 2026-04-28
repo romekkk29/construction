@@ -1,16 +1,23 @@
 import React, {useState,useEffect,useRef} from "react";
 
 import NioFormModal from "./NewNioFormModal";
+import NioDefectiveModal from "./DefecModal";
+
 import { Role, Project,User,CostAccount, Supply, NIOS, NIOSupplier,NIOStatus,Driver} from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { RefreshCw,Plus,Pencil, ClipboardList,X, Truck,Send,BrainCircuit, CheckCircle2, Clock,Construction,ArrowRight,ArrowLeft,Package,Calendar} from "lucide-react";
+import { Trash2,RefreshCw,Plus,Pencil, ClipboardList,X, Truck,Send,BrainCircuit, CheckCircle2, Clock,Construction,ArrowRight,ArrowLeft,Package,Calendar} from "lucide-react";
 import { useAuth } from './../Login/ProtectedRoute';
+import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
 
 export default function NioComponent() {
     const [isProjectModalOpen,setIsProjectModalOpen] = useState(false);
     const [supplies,setSupplies]= useState<Supply[]>([]);
     const [nios,setNios]= useState<NIOS[]>([]);
+    const [nioToEdit,setNioToEdit]= useState<NIOS | null | undefined>(null);
+
     const [selectedNio,setSelectedNio]= useState<NIOS[] | null>(null);
+    const [selectedNioOne,setSelectedNioOne]= useState<NIOS | null>(null);
+
     const [niosSupplier,setNiosSupplier]= useState<NIOSupplier[]>([]);
     const [niosSupplySells,setNiosSupplySells]= useState<NIOSupplier[]>([]);
     const [niosDrivers,setNiosDrivers]= useState<NIOSupplier[]>([]);
@@ -20,8 +27,17 @@ export default function NioComponent() {
     
     const { user } = useAuth();
     const [projects, setProjects] = useState<Project[]>([]);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [refreshCount, setRefreshCount] = useState(0);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(() => {
+    const saved = localStorage.getItem("selectedProject");
+    // Si existe, lo parseamos; si no, devolvemos null
+    return saved ? JSON.parse(saved) : null;
+  }); 
+  const [refreshCount, setRefreshCount] = useState(0);
+    const [isDeleteNio, setIsDeleteNio] = useState<Boolean>(false);
+    const [isDefectNio, setIsDefectNio] = useState<Boolean>(false);
+
+    const [seletecItemDefect, setSelecItemDefect] = useState<any>(false);
+
     const [users, setUsers] = useState<User[]>([]);
     const [loading,setLoading]= useState<Boolean>(false);
     const formatCurrency = (value) => {
@@ -96,10 +112,11 @@ export default function NioComponent() {
         await apiClient.nios.createDriver(payload);
         if(everySup &&everySup.length===0){
           handleTransitAllLogicT()
+          setRefreshCount(prev => prev + 1);
+
           }
           
         // El refresh sucede después de la redirección y el guardado
-        setRefreshCount(prev => prev + 1);
       } catch (err) {
         alert(err.message || 'Error al procesar la solicitud');
       }
@@ -139,13 +156,20 @@ export default function NioComponent() {
           
            if(everySup &&everySup.length===0 && item.quantity_less==0){
             handleFinihsLogicT()
+            setRefreshCount(prev => prev + 1);
            }
           alert("Guardado correctamente")
-          setRefreshCount(prev => prev + 1);
+          
       } catch (err: any) {
           alert(err.message || 'Error');
       } 
     }
+   const handleReceptionDefect=async(item)=>{
+        setIsDefectNio(true)
+        console.log(item)
+        setSelecItemDefect(item)
+    }
+    
     const handleGoLogic = async(item)=>{
       if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
         alert("sin permisos")
@@ -180,9 +204,9 @@ export default function NioComponent() {
            const response = await apiClient.nios.createSell(p);
            if(everySup &&everySup.length===0){
             handleGoAllLogicT()
+            setRefreshCount(prev => prev + 1);
            }
           
-          setRefreshCount(prev => prev + 1);
       } catch (err: any) {
           alert(err.message || 'Error');
       }      
@@ -194,38 +218,38 @@ export default function NioComponent() {
         alert("sin permisos")
         return
       }
-    const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
+      const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
 
       // Verificamos si AL MENOS UNO tiene status 
-    const hasIncomplete = niosSup.some(element => element.status < 3);
+      const hasIncomplete = niosSup.some(element => element.status < 3);
 
-    if (hasIncomplete) {
-        alert("La compra no esta completada");
-        return; // Este return SÍ corta la función handleGoAllLogic
+      if (hasIncomplete) {
+          alert("La compra no esta completada");
+          return; // Este return SÍ corta la función handleGoAllLogic
+        }
+        try {
+            const response = await apiClient.nios.nios_finish_seller({id:selectedNio.id});
+            setSelectedNio(null)
+            setRefreshCount(prev => prev + 1);
+        } catch (err: any) {
+            alert(err.message || 'Error');
+        }      
       }
-      try {
-          const response = await apiClient.nios.nios_finish_seller({id:selectedNio.id});
-          setSelectedNio(null)
-          setRefreshCount(prev => prev + 1);
-      } catch (err: any) {
-          alert(err.message || 'Error');
-      }      
-    }
-    const handleGoAllLogicT =async()=>{
-      if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
-        alert("sin permisos")
-        return
-      }
-    const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
+      const handleGoAllLogicT =async()=>{
+        if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
+          alert("sin permisos")
+          return
+        }
+      const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
 
 
-      try {
-          const response = await apiClient.nios.nios_finish_seller({id:selectedNio.id});
-          setSelectedNio(null)
-          setRefreshCount(prev => prev + 1);
-      } catch (err: any) {
-          alert(err.message || 'Error');
-      }      
+        try {
+            const response = await apiClient.nios.nios_finish_seller({id:selectedNio.id});
+            setSelectedNio(null)
+            setRefreshCount(prev => prev + 1);
+        } catch (err: any) {
+            alert(err.message || 'Error');
+        }      
     }
     const handleTransitAllLogic =async()=>{
         if(user.role_id!==1&&user.role_id!==5&&user.role_id!==6){
@@ -252,7 +276,7 @@ export default function NioComponent() {
             alert(err.message || 'Error');
       }         
     }    
-      const handleTransitAllLogicT =async()=>{
+    const handleTransitAllLogicT =async()=>{
         if(user.role_id!==1&&user.role_id!==5&&user.role_id!==6){
             alert("sin permisos")
             return
@@ -349,11 +373,11 @@ export default function NioComponent() {
           { id: 2, label: 'Compras', icon: ClipboardList, color: 'amber' },
           { id: 3, label: 'Logística', icon: Truck, color: 'emerald' },
           { id: 4, label: 'EN TRANSITO Y RECEPCION EN OBRA', icon: Send, color: 'indigo' },
-          { id: 5, label: 'Completas los ultimos 30 días', icon: CheckCircle2, color: 'slate' },
+          { id: 5, label: 'Completas los ultimos 90 días', icon: CheckCircle2, color: 'slate' },
         ];
 
         return (
-          <div className="h-[calc(100vh-12rem)] overflow-hidden flex flex-col gap-6">
+          <div className="h-[calc(94vh-12rem)] md:h-[calc(120vh-12rem)] overflow-hidden flex flex-col gap-6">
             <div className="flex-1 flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
               {columns.map(col => (
                 <div key={col.id} className="min-w-[320px] bg-slate-100 rounded-2xl flex flex-col border border-slate-200">
@@ -385,6 +409,42 @@ export default function NioComponent() {
                               <Clock className="h-3 w-3" /> {nio.needDate.slice(0, 10)}
                             </div>
                           </div>
+                          {nio.status==1 && (user.role_id==1||user.role_id==2||user.role_id==3)?
+
+                            <div className="flex justify-end gap-2 mb-1">
+                              {/* BOTÓN EDITAR */}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  supplys.forEach(element => {
+                                    let det=supplies?.filter(el=>(el.id===element.supplyId))[0]
+                                    element.supply=det 
+                                  });
+                                  nio.items=supplys
+                                  console.log(supplys)
+                                  setNioToEdit(nio)
+                                  setIsProjectModalOpen(true);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Editar"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+
+                              {/* BOTÓN ELIMINAR */}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedNioOne(nio)
+                                  setIsDeleteNio(true)
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>:null
+                            }
                           {supplys.length>0?supplys?.map(sup=>{
                               const det=supplies?.filter(el=>(el.id===sup.supplyId))[0]                          
                             return(
@@ -1036,12 +1096,19 @@ export default function NioComponent() {
                                       />
 
                                     </div>  
+                                    <div className="flex flex-col gap-3 md:col-span-1">
                                     <button 
                                           onClick={() => handleReceptionSave(item)}
                                           className={`px-3 py-2 rounded-lg text-white text-[10px] font-bold transition-all flex items-center justify-center shadow-sm active:scale-95 bg-emerald-700 cursor-pointer`}
                                         >
                                           Guardar
                                         </button>
+                                      <button 
+                                          onClick={() => handleReceptionDefect(item)}
+                                          className={`px-3 py-2 rounded-lg text-white text-[10px] font-bold transition-all flex items-center justify-center shadow-sm active:scale-95 bg-red-700 cursor-pointer`}
+                                        >
+                                          Marcar como defectuosa
+                                        </button> </div>
                                         </>:null
                                   }
 
@@ -1158,16 +1225,26 @@ export default function NioComponent() {
             }
         }
     };
-   const handleSelectedProject= async (project: Project) => {
-      
+    const handleSelectedProject = async (project: Project) => {
       try {
         const response = await apiClient.costAccounts.list(project.id);
-        project.accounts=response
-        setSelectedProject(project)
+        
+        // Creamos una copia para no mutar el objeto original directamente
+        const projectWithAccounts = {
+          ...project,
+          accounts: response
+        };
+
+        // Actualizamos el estado de React
+        setSelectedProject(projectWithAccounts);
+
+        // Guardamos en LocalStorage para la próxima vez que recargues
+        localStorage.setItem("selectedProject", JSON.stringify(projectWithAccounts));
+
       } catch (err: any) {
         alert(err.message || 'Error al traer cuentas');
       }
-  };
+    };
   const handleCreateNio = async (nio) => {
     // 1. Construimos el objeto principal de la NIO
     const nioData: NIOS = {
@@ -1202,7 +1279,48 @@ export default function NioComponent() {
         alert(err.message || 'Error al crear nio');
       }
   };
+  const handleUpdateNio = async (nio) => {
+    let p={
+      id:nio.id,
+      nioSuppliers:nio.items,
+      need_date:nio.needDate,
+      idsDelete:nio.idsDelete
+    }
+    const res = await apiClient.nios.updateN(p);
+    setIsProjectModalOpen(false);
+    setNioToEdit(null);
+    setRefreshCount(prev => prev + 1);
 
+  };
+  const handleConfirmDefect = async (data) => {
+    const p={
+    nios_id:seletecItemDefect.niosId,
+    user_id:user.id,
+    nios_supplies_id:seletecItemDefect.nios_supplies_id,
+    quantity_bad:data.defective,
+    quantity_recived:data.good,
+    quantity_distinct:data.wrong,
+    quantity_less:data.missing,
+    detail:data.reason
+    }
+    const nioD = await apiClient.nios.nios_defect(p);
+     setIsDefectNio(false)
+    setSelecItemDefect(null)
+    setRefreshCount(prev => prev + 1);
+  };
+  const handleDeleteNio = async (id: string) => {
+      setLoading(true)
+      const deleteResponse = await apiClient.nios.delete(id);
+      if(deleteResponse.message){
+          setSelectedNioOne(null)
+          setIsDeleteNio(false)
+          setLoading(false)
+          setRefreshCount(prev => prev + 1);
+      }else{
+          alert("Error "+ deleteResponse)
+      }
+      setLoading(false)
+    };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1313,7 +1431,15 @@ export default function NioComponent() {
         setNiosSupplier(updatedList);
         setNiosSupplySells(supplySells);
         setNiosDrivers(niosDrivers);
-
+        if(projectsFilerts && projectsFilerts.length>0){
+          const saved = localStorage.getItem("selectedProject");
+          if(saved){
+            handleSelectedProject(JSON.parse(saved))
+          }else{
+              handleSelectedProject(projectsFilerts[0])
+          }
+          
+        }
       } catch (error) {
         console.error("Error al sincronizar datos de NIOs:", error);
       }
@@ -1327,8 +1453,30 @@ export default function NioComponent() {
     
              <div >
 
-
-                    {/* MODAL: Nueva Obra */}
+                  <ConfirmDeleteModal
+                  isOpen={isDeleteNio}
+                  onClose={() => {
+                      setIsDeleteNio(false)
+                      setSelectedNioOne(null)
+                  }}
+                  onConfirm={() => {
+                      handleDeleteNio(selectedNioOne?.id??"")
+                  }}
+                  itemName={" La NIO "+selectedNioOne?.id}
+                  loading={loading}
+                  ></ConfirmDeleteModal> 
+                  <NioDefectiveModal
+                  isOpen={isDefectNio}
+                  onClose={() => {
+                      setIsDefectNio(false)
+                  }}
+                  cantidadEsperada={seletecItemDefect?.quantity||0}
+                  onSubmit={(data) => {
+                      handleConfirmDefect(data)
+                  }}
+                  itemName={" La NIO "}
+                  loading={loading}
+                  ></NioDefectiveModal> 
                       <NioFormModal
                       users={users}
                       isOpen={isProjectModalOpen}
@@ -1337,9 +1485,10 @@ export default function NioComponent() {
                       projectSelect={selectedProject}
                       onClose={() => {
                           setIsProjectModalOpen(false);
+                          setNioToEdit(null); // Limpiar al cerrar
                       }}
-                      initialData={undefined}
-                      onSubmit={handleCreateNio}
+                          initialData={nioToEdit} // Aquí pasas la NIO si vas a editar
+                          onSubmit={nioToEdit ? handleUpdateNio : handleCreateNio}
                       />
   
                     <div className="flex flex-col sm:flex-row pb-6 justify-between items-stretch sm:items-center gap-4">

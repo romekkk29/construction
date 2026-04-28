@@ -18,7 +18,8 @@ VALUES
  ('Jefe de obra'),
  ('Gerente de Cómputo y presupuesto'),
  ('Gerente de Compras'),
- ('Área Compras');
+ ('Área Compras'),
+ ('Visualizadores');
 
 -- Tabla de Usuarios (Usuarios)
 CREATE TABLE IF NOT EXISTS users (
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_enable BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
+
 INSERT INTO users (name,last_name,role_id,email)
 VALUES
  ('Romeo','',1,'romegomez29@gmail.com'),
@@ -76,7 +78,13 @@ CREATE TABLE IF NOT EXISTS cost_accounts (
     spent NUMERIC(15, 2) DEFAULT 0,
     is_enable BOOLEAN DEFAULT TRUE 
 );
-
+CREATE TABLE IF NOT EXISTS infla (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    creation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER REFERENCES users(id),
+    percentage TEXT,
+    project_id INTEGER REFERENCES projects(id)
+);
 -- Tabla de Insumos / Suministros (Maestro de materiales)
 CREATE TABLE IF NOT EXISTS supplies (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -121,6 +129,21 @@ CREATE TABLE IF NOT EXISTS nios_supplies (
     status INTEGER NOT NULL DEFAULT 1,
     is_enable BOOLEAN DEFAULT TRUE,
     account_id INTEGER REFERENCES cost_accounts(id)
+);
+-- Tabla de NIOs (Necesidad Interna de Obra)
+CREATE TABLE IF NOT EXISTS nios_defect (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nios_id INTEGER REFERENCES nios(id),
+    user_id INTEGER REFERENCES users(id),
+    created_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    nios_supplies_id INTEGER REFERENCES nios_supplies(id),
+    quantity_bad NUMERIC(12, 2),
+    quantity_distinct NUMERIC(12, 2),
+    quantity_recived NUMERIC(12, 2),
+    quantity_less NUMERIC(12, 2),
+    detail  TEXT,
+    status INTEGER NOT NULL DEFAULT 1,
+    is_enable BOOLEAN DEFAULT TRUE
 );
 -- Tabla de NIOs (Necesidad Interna de Obra)
 CREATE TABLE IF NOT EXISTS nios_sells (

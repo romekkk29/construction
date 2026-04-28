@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action =  'SELECT_DASHBOARD' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
+type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
 
 export const pgQuery = async (
   table: string,
@@ -85,6 +85,74 @@ export const pgQuery = async (
                   WHERE n.is_enable = TRUE 
                     AND p.is_enable = TRUE 
                     AND n.status <> 5`);
+    }
+    case 'SELECT_NIO_DEFECT': {
+      return query(`SELECT 
+            nd.id AS defect_id,
+            nd.created_date,
+            nd.quantity_bad,
+            nd.quantity_distinct,
+            nd.quantity_recived,
+            nd.quantity_less,
+            nd.detail AS defect_detail,
+            nd.status AS defect_status,
+
+            -- 👤 USER
+            u.id AS user_id,
+            u.role_id,
+            u.name,
+            u.last_name,
+            u.email,
+
+            -- 📦 NIO
+            n.*,
+
+            -- 📦 NIO SUPPLIES
+            ns.id AS nios_supplies_id,
+            ns.supplies_id,
+            ns.quantity,
+            ns.detail AS supply_detail,
+            ns.account_id,
+
+            -- 🧱 SUPPLIES
+            s.id AS supply_id,
+            s.code,
+            s.detail AS supply_name,
+            s.unit,
+            s.best_price,
+            s.best_supplier,
+
+            -- 💰 SELLS
+            nsell.id AS sell_id,
+            nsell.oc_number,
+            nsell.supplier,
+            nsell.price_individual,
+            nsell.price_total,
+            nsell.status AS sell_status,
+            nsell.creation_date AS sell_date
+
+          FROM nios_defect nd
+
+          LEFT JOIN users u 
+            ON nd.user_id = u.id
+
+          LEFT JOIN nios n 
+            ON nd.nios_id = n.id
+
+          LEFT JOIN nios_supplies ns 
+            ON nd.nios_supplies_id = ns.id
+
+          LEFT JOIN supplies s 
+            ON ns.supplies_id = s.id
+
+          LEFT JOIN nios_sells nsell 
+            ON ns.id = nsell.nios_supplies_id
+
+          WHERE nd.is_enable = TRUE
+
+          ORDER BY nd.created_date DESC
+
+          LIMIT $1 OFFSET $2;`, [data.limit, data.offset]);
     }
     case 'SELECT_NIOS_SECOND': {
       if (data?.id) {
@@ -176,7 +244,7 @@ export const pgQuery = async (
         WHERE nd.status = 5 
           AND nd.is_enable = TRUE
           AND p.is_enable = TRUE
-          AND nd.reception_date >= NOW() - INTERVAL '30 days'
+          AND nd.reception_date >= NOW() - INTERVAL '90 days'
         GROUP BY n.id, n.project_id, n.creation_date, n.need_date, n.status, 
                 n.is_enable, n.user_id, n.to_procurement_at, n.to_logistics_at, 
                 n.to_transit_at, n.completed_at,nsup.id,ns.id,nd.id

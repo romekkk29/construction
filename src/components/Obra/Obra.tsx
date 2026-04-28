@@ -2,9 +2,10 @@ import React, {useState,useEffect,useRef} from "react";
 
 import ProjectFormModal from "./ObraFormModal";
 import CostFormModal from "./CostFormModal"
+import InflationModal  from "./InflaModal"
 import { Role, Project,User,CostAccount} from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { Plus, Pencil,X, Trash2,Loader2,BrainCircuit, Save,Edit3, Clock } from "lucide-react";
+import { TrendingUp,Plus, Pencil,X, Trash2,Loader2,BrainCircuit, Save,Edit3, Clock } from "lucide-react";
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
 import * as XLSX from 'xlsx';
@@ -50,6 +51,11 @@ export default function ObraComponent() {
     const [isCostAccountDeleteModalOpen, setIsCostAccountDeleteModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [editingCostAccount, setEditingCostAccount] = useState<Project | null>(null);
+
+    const [isInfla, setIsInfla] = useState(false);
+    const [projectInfla, setProjectInfla] = useState("");
+    const [projectInflaId, setProjectInflaId] = useState(null);
+
    const { user } = useAuth();
 
     const [projects, setProjects] = useState<Project[]>([]);
@@ -112,7 +118,7 @@ export default function ObraComponent() {
     try {
       const response = await apiClient.costAccounts.create([project]);
       let newIdProject={...project,id:response[0].id}
-
+        console.log(newIdProject)
         setProjects(prevProjects => 
                         prevProjects.map(project => {
                             // Si no es el proyecto que buscamos, lo devolvemos tal cual
@@ -148,6 +154,8 @@ export default function ObraComponent() {
     const handleUpdateCostAccount = async (costAccount: CostAccount) => {
         //falta todo
         const updated = await apiClient.costAccounts.update(costAccount);
+        console.log(costAccount)
+        console.log(updated)
         setProjects(prevProjects => 
                         prevProjects.map(project => {
                             // Si no es el proyecto que buscamos, lo devolvemos tal cual
@@ -158,11 +166,12 @@ export default function ObraComponent() {
                             // Si es el proyecto, creamos una copia y filtramos sus cuentas
                             return {
                                 ...project,
-                                accounts: project.accounts?.map(p => (p.id === costAccount.id ? updated : p))
+                                accounts: project.accounts?.map(p => (p.id === costAccount.id ? costAccount : p))
                             };
                         })
                     );
-        setSelectedProject((prevState => ({...prevState, accounts:prevState.accounts?.map(p => (p.id === costAccount.id ? updated : p))})));
+        console.log(selectedProject.accounts?.map(p => (p.id === costAccount.id ? updated : p)))
+        setSelectedProject((prevState => ({...prevState, accounts:prevState.accounts?.map(p => (p.id === costAccount.id ? costAccount : p))})));
         setEditingCostAccount(null);
         setIsCostAccountModalOpen(false);
     };
@@ -180,6 +189,50 @@ export default function ObraComponent() {
         setIsProjectDeleteModalOpen(false)
         setIsProjectModalOpen(false);
         setSelectedProject(null)
+    };
+    const handleSuInfla = async (perce) => {
+        setLoading(true)
+        let p={
+            projectId:projectInflaId,
+            percentage:perce,
+            user_id:user.id
+        }
+        const res = await apiClient.costAccounts.infla(p);
+        fetchDatas();
+        setLoading(false)
+        setIsInfla(false);
+        setProjectInfla("");
+        setProjectInflaId(null);
+    };
+   const fetchDatas = async () => {
+      try {
+        const [projData,users] = await Promise.all([
+          apiClient.projects.list(),
+          apiClient.users.list()
+        ]);
+
+        if (projData) {
+        // 2. Mapeamos los proyectos para crear un array de promesas
+        const projectsWithAccounts = await Promise.all(
+          projData.map(async (project) => {
+            try {
+              // Esperamos la respuesta de las cuentas para este proyecto
+              const accounts = await apiClient.costAccounts.list(project.id);
+              // Retornamos el proyecto extendido
+              return { ...project, accounts };
+            } catch (err) {
+              console.error(`Error cargando cuentas para proyecto ${project.id}:`, err);
+              return { ...project, accounts: [] }; // Fallback en caso de error individual
+            }
+          })
+        );
+
+        setProjects(projectsWithAccounts);
+      }
+        setUsers(users)
+      } catch (error) {
+        console.error("DB Connection Error:", error);
+      }
     };
     const handleDeleteCostAccount = async (id: string) => {
         setLoading(true)
@@ -314,6 +367,21 @@ export default function ObraComponent() {
                 initialData={editingProject ?? undefined}
                 onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
                 />
+                <InflationModal
+                    isOpen={isInfla}
+                    onClose={() => {
+                    setIsInfla(false);
+                    setProjectInfla("");
+                    setProjectInflaId(null);
+                }}
+                    onSubmit={(perce) => {
+                    handleSuInfla(perce)
+                }}
+                    projectName={projectInfla}
+
+                />
+
+                
                 <ConfirmDeleteModal
                 isOpen={isCostAccountDeleteModalOpen}
                 onClose={() => {
@@ -412,7 +480,40 @@ export default function ObraComponent() {
                                 {/* Botones de acción (Edit/Delete) - Mantengo tu lógica de roles */}
                                 {(user.role_id === 1 || user.role_id === 4) && (
                                     <div className="flex gap-2">
-                                                                   <div className="relative group">
+                                                                 <div className="relative group">
+                            
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsInfla(true)
+                                    setProjectInfla(project.name)
+                                    setProjectInflaId(project.id)
+
+                                    }}
+                                    className="
+                                    p-2 rounded-lg border border-slate-200
+                                    text-slate-600 hover:bg-slate-100 hover:text-blue-600
+                                    transition
+                                    "
+                                >
+                                    <TrendingUp size={16} />
+                                </button>
+
+                                <span
+                                    className="
+                                    pointer-events-none
+                                    absolute -top-8 right-1/2 translate-x-1/2
+                                    whitespace-nowrap bg-slate-800 text-white
+                                    text-xs px-2 py-1 rounded
+                                    opacity-0 group-hover:opacity-100 transition
+                                    "
+                                >
+                                    Aumentos Inflacion
+                                </span>
+                                </div>
+                         <div className="relative group">
+                            
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -486,7 +587,7 @@ export default function ObraComponent() {
                                     </div>
                                     <div className="text-right">
                                     <span className={`font-bold ${percentage > 100 ? 'text-red-600' : 'text-blue-600'}`}>
-                                        {percentage.toFixed(1)}%
+                                        {percentage.toFixed(2)}%
                                     </span>
                                     </div>
                                 </div>

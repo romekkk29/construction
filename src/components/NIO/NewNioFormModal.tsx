@@ -38,6 +38,7 @@ export default function NioFormModal({
   isOpen,
   onClose,
   onSubmit,
+  initialData,
   projectSelect,
   addSupply,
   users,
@@ -48,6 +49,9 @@ export default function NioFormModal({
   const [showForm, setShowForm] = useState(true); // Controla si se ven los campos de carga
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpenSelect, setIsOpenSelect] = useState(false);
+  const [needDate, setNeedDate] = useState("");
+  const [idsDelete, setIdsDelete] = useState([]);
+
   // Estado para los campos actuales del formulario
   const [currentItem, setCurrentItem] = useState({
       accountId: "",
@@ -141,32 +145,74 @@ export default function NioFormModal({
     if (items.length === 1) setShowForm(true);
   };
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
+const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) {
       alert("Debes agregar al menos un ítem a la lista");
       return;
     }
-    // Aquí enviamos la NIO completa con su lista de ítems
+    if(initialData){
     onSubmit({
+      ...(initialData && { id: initialData.id }), // Si editamos, mandamos el ID
       projectId: projectSelect.id,
-      needDate: (e.currentTarget as any).needDate.value,
+      needDate: needDate,
+      items: items,
+      idsDelete:idsDelete
+    });
+    }else{
+    onSubmit({
+      ...(initialData && { id: initialData.id }), // Si editamos, mandamos el ID
+      projectId: projectSelect.id,
+      needDate: needDate,
       items: items
     });
-  };
+    }
 
-  useEffect(()=>{
-    setItems([])
-  },[projectSelect])
+  };
+useEffect(() => {
+    if (isOpen) {
+      console.log(initialData)
+      setIdsDelete([])
+      if (initialData) {
+
+        // Mapeamos los ítems que vienen de la DB al formato PurchaseItem del estado
+        const mappedItems: PurchaseItem[] = initialData.items.map((item: any) => ({
+          id: item.id || Math.random().toString(36).substr(2, 9),
+          accountId: item.accountId.toString(),
+          accountName: projectSelect?.accounts?.find(a => a.id === item.accountId)?.name || "Cuenta",
+          supply: item.supply,
+          quantity: item.quantity,
+          detail: item.detail || ""
+        }));
+        
+        setItems(mappedItems);
+        // Formateamos la fecha para el input type="date" (YYYY-MM-DD)
+        if (initialData.needDate) {
+           setNeedDate(new Date(initialData.needDate).toISOString().split('T')[0]);
+        }
+        setShowForm(false); // Ocultamos el formulario de carga inicial si ya hay ítems
+      } else {
+        // Reset si es creación nueva
+        setIdsDelete([])
+        setItems([]);
+        setNeedDate("");
+        setShowForm(true);
+      }
+    }
+  }, [isOpen, projectSelect]);
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Iniciar Necesidad Interna de Obra (NIO)">
+    <Modal isOpen={isOpen} onClose={onClose}title={initialData ? `Editando NIO #${initialData.id}` : "Iniciar Necesidad Interna de Obra (NIO)"}>
       <form className="space-y-6" onSubmit={handleFinalSubmit}>
         
         {/* Header de Info (Tus campos originales) */}
         <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha de Creación</p>
-            <p className="font-bold text-slate-700">{new Date().toLocaleDateString()}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {initialData ? "Fecha Original" : "Fecha de Creación"}
+            </p>
+            <p className="font-bold text-slate-700">
+                {initialData ? new Date(initialData.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
+            </p>
           </div>
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">Obra Destino</label>
@@ -176,7 +222,14 @@ export default function NioFormModal({
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha necesidad en obra</p>
             <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
               <Calendar className="h-4 w-4 text-blue-600" />
-              <input name="needDate" type="date" required className="outline-none text-sm font-bold text-slate-800" />
+              <input 
+                name="needDate" 
+                type="date" 
+                required 
+                value={needDate} // Input controlado
+                onChange={(e) => setNeedDate(e.target.value)}
+                className="outline-none text-sm font-bold text-slate-800" 
+              />
             </div>
           </div>
         </div>
@@ -197,8 +250,9 @@ export default function NioFormModal({
               </thead>
               <tbody className="divide-y divide-slate-50 bg-white">
                 {items.map((item) => (
+                  
                   <tr key={item.id} className="hover:bg-slate-50/50">
-                    <td className="p-3 font-mono text-[10px] text-slate-400">{item.supply.code}</td>
+                    <td className="p-3 font-mono text-[10px] text-slate-400">{item.supply.code }</td>
                     <td className="p-3 font-semibold text-slate-700">
                       {item.supply.detail}
                       {!item.supply.id && <span className="ml-2 text-[8px] bg-blue-100 text-blue-600 px-1 rounded">NUEVO</span>}
@@ -210,12 +264,21 @@ export default function NioFormModal({
                     </td>
                     <td className="p-3 text-slate-500 text-xs">{item.accountName}</td>
                     <td className="p-3 text-right">
-                      <button type="button" onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 p-1">
+                      <button type="button" onClick={() => {
+                        
+                        removeItem(item.id);
+                          if(initialData){
+                              setIdsDelete(prevItems => [...prevItems, item.id]);
+                          }}
+                      } className="text-red-400 hover:text-red-600 p-1">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
-                ))}
+                  
+                ))
+
+                }
               </tbody>
             </table>
           </div>
@@ -342,7 +405,8 @@ export default function NioFormModal({
           className={`w-full py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3 
             ${items.length === 0 ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white shadow-xl shadow-slate-200"}`}
         >
-          <Send className="h-6 w-6" /> Guardar Pedido
+          <Send className="h-6 w-6" /> 
+          {initialData ? "Actualizar Pedido" : "Guardar Pedido"}
         </button>
       </form>
     </Modal>

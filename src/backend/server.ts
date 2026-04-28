@@ -378,7 +378,28 @@ app.put('/api/costaccounts/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
+app.put('/api/costaccounts/inflation-manual/:id', asyncHandler(async (req, res) => {
+  const { projectId, percentage, user_id} = req.body;
+  const factor = 1 + (Number(percentage) / 100);
 
+  // 1. Buscamos las cuentas actuales
+  const currentAccounts = await pgQuery('cost_accounts', 'SELECT_COST_ACCOUNT', { id: projectId });
+  const dataArray = Array.isArray(currentAccounts) ? currentAccounts : [currentAccounts];
+
+  // 2. Preparamos el array con los nuevos valores para UPDATE_MANY
+  const resultsToUpdate = dataArray.map((row: any) => ({
+    id: row.id,
+    budgeted: Number(row.budgeted) * factor
+    // Solo mandamos ID y budgeted, tu UPDATE_MANY se encarga del resto
+  }));
+
+  // 3. Ejecutamos tu función UPDATE_MANY
+  const updated = await pgQuery('cost_accounts', 'UPDATE_MANY', resultsToUpdate);
+
+  const IN = await pgQuery('infla', 'INSERT', { project_id: projectId,percentage:percentage,user_id:user_id});
+
+  res.json(updated);
+}));
 app.delete('/api/costaccounts/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -455,6 +476,43 @@ app.post('/api/nios', asyncHandler(async (req, res) => {
     items: newcreatedSuppliers
   });
 }));
+app.put('/api/nios/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { nioSuppliers,need_date,idsDelete} = req.body;
+
+  const nioToInsert = {
+    id,
+    need_date: need_date
+  };
+  const result = await pgQuery('nios', 'UPDATE', nioToInsert);
+
+  const dataArray = Array.isArray(nioSuppliers) ? nioSuppliers : (nioSuppliers ? [nioSuppliers] : []);
+  for (const element of dataArray) {
+    if(isNaN((element.id))){
+      let el={
+          nios_id: id,           // El ID que vincula todo
+          user_id: 1,
+          supplies_id: element.supply.id,  // Ajustado a supplies_id según tu SQL
+          quantity: element.quantity,
+          status:  1,
+          account_id: parseInt(element.accountId),
+          detail: element.detail || "Sin detalle"}
+        const created = await pgQuery('nios_supplies', 'INSERT', el);
+    }
+  };
+  for (const element of idsDelete) {
+         let nioDel = {
+            id:element,
+            is_enable: false
+          };
+        const del = await pgQuery('nios_supplies', 'UPDATE', nioDel);
+  };
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+
+  res.json(result);
+}));
 app.post('/api/nios_sell', asyncHandler(async (req, res) => {
   const { niosSupply, account_id } = req.body;
 
@@ -516,6 +574,29 @@ app.post('/api/nios_driver', asyncHandler(async (req, res) => {
   const createdNioSell = await pgQuery('nios_driver', 'INSERT', niosDriverSave);
   const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
   res.status(201).json(createdNioSell);
+}));
+app.post('/api/nios_defect', asyncHandler(async (req, res) => {
+  const nios_defect: any = req.body;
+  const created = await pgQuery('nios_defect', 'INSERT', nios_defect);
+  let data={
+    id:nios_defect.nios_supplies_id,
+    is_enable: false
+  }
+  const update = await pgQuery('nios_supplies', 'UPDATE', data);
+
+  res.status(201).json(created);
+}));
+app.get('/api/nios_defect', asyncHandler(async (req, res) => {
+
+  const limit = Number(req.query.limit) || 10;
+  const offset = Number(req.query.offset) || 0;
+
+  const results = await pgQuery('nios_defect', 'SELECT_NIO_DEFECT', {
+    limit,
+    offset
+  });
+
+  res.status(200).json(results);
 }));
 app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
@@ -717,6 +798,20 @@ app.put('/api/nios_finish_nio/:id', asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Nio no encontrado' });
   }
   res.json(result);
+}));
+app.delete('/api/nio/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await pgQuery('nios', 'UPDATE', {
+    id,
+    is_enable: false
+  });
+
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+
+  res.json({ message: 'Nio deshabilitado con éxito', user: result });
 }));
 /* ---------- API SUPPLIES ---------- */
 app.get('/api/supplies', asyncHandler(async (_, res) => {

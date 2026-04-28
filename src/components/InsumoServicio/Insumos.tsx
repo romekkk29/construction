@@ -263,7 +263,7 @@ export default function SupliesComponent() {
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Código</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Detalle</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Unidad</th>
-                               {user.role_id==1||user.role_id==4||user.role_id==5||user.role_id==6?   
+                               {user.role_id==1||user.role_id==4||user.role_id==5||user.role_id==6||user.role_id==7?   
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Precio</th>:null}
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Mejor Proveedor</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Acciones</th>

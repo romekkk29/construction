@@ -104,6 +104,14 @@ export const apiClient = {
       });
       return res.json();
     },
+    infla: async (p:any): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/costaccounts/inflation-manual/${p.projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
   },
   session:{
       list: async (): Promise<User> => {
@@ -152,6 +160,20 @@ export const apiClient = {
       });
       return res.json();
     },
+    delete: async (id: string): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/nio/${id}`, {
+        method: 'DELETE',
+      });
+      return res.json();
+    },
+    updateN: async (p:any): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/nios/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
     nios_finish_nio: async (p:any): Promise<any> => {
       const res = await fetch(`${API_BASE_URL}/nios_finish_nio/${p.id}`, {
         method: 'PUT',
@@ -160,6 +182,24 @@ export const apiClient = {
       });
       return res.json();
     },
+    nios_defect: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_defect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    list_nios_defect: async (p:any): Promise<any> => {
+        const params = new URLSearchParams({
+          limit: String(p.limit ?? 10),
+          offset: String(p.offset ?? 0),
+        });      
+      const res = await fetch(`${API_BASE_URL}/nios_defect?${params.toString()}`, {
+        method: 'GET',
+      });
+      return res.json();
+    },    
     putSentSell: async (p:any): Promise<any> => {
       const res = await fetch(`${API_BASE_URL}/nios_sent_seller/${p.id}`, {
         method: 'PUT',
