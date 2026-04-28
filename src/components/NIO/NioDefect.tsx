@@ -42,7 +42,7 @@ export default function NioDefectComponent() {
           className="p-2 border rounded-lg"
         >
           <option value="all">Todos los proyectos</option>
-          {projects.map((p) => (
+          {projects?.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
@@ -67,7 +67,7 @@ export default function NioDefectComponent() {
           </thead>
 
           <tbody>
-            {filtered.map((row: any) => (
+            {filtered?.map((row: any) => (
               <tr key={row.defect_id} className="border-t hover:bg-slate-50">
                 
                 <td className="p-3">
