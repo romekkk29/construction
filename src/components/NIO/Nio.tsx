@@ -377,7 +377,7 @@ export default function NioComponent() {
         ];
 
         return (
-          <div className="h-[calc(94vh-12rem)] md:h-[calc(120vh-12rem)] overflow-hidden flex flex-col gap-6">
+          <div className="h-[calc(94vh-12rem)] md:h-[calc(100vh-12rem)] overflow-hidden flex flex-col gap-6">
             <div className="flex-1 flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
               {columns.map(col => (
                 <div key={col.id} className="min-w-[320px] bg-slate-100 rounded-2xl flex flex-col border border-slate-200">
