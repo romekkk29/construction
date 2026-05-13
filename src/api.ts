@@ -199,9 +199,36 @@ export const apiClient = {
         method: 'GET',
       });
       return res.json();
+    },
+    nios_defect_imput: async (payload: any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_defect_imput`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw await res.json();
+      }
+      return res.json();
     },    
     putSentSell: async (p:any): Promise<any> => {
       const res = await fetch(`${API_BASE_URL}/nios_sent_seller/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    putSentSellTrue: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_sent_seller_true/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    nios_finish_presupuest: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_finish_presupuest/${p.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(p),
@@ -247,6 +274,10 @@ export const apiClient = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(p),
       });
+      return res.json();
+    },
+    list_nios_defect_cost: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_defect_cost/${p.id}`);
       return res.json();
     },
   },

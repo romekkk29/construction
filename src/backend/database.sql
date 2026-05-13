@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS cost_accounts (
     spent NUMERIC(15, 2) DEFAULT 0,
     is_enable BOOLEAN DEFAULT TRUE 
 );
+
 CREATE TABLE IF NOT EXISTS infla (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     creation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -123,6 +124,7 @@ CREATE TABLE IF NOT EXISTS nios_supplies (
     nios_id INTEGER REFERENCES nios(id),
     user_id INTEGER REFERENCES users(id),
     sent_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    price_individual NUMERIC(12, 2),
     supplies_id INTEGER REFERENCES supplies(id),
     quantity NUMERIC(12, 2),
     detail  TEXT,
@@ -178,6 +180,18 @@ CREATE TABLE IF NOT EXISTS project_stocks (
     quantity NUMERIC(12, 2),
     unit TEXT,
     last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE 
+);
+
+
+CREATE TABLE IF NOT EXISTS cost_accounts_defect (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_id INTEGER REFERENCES cost_accounts(id),
+    nios_defect_id INTEGER REFERENCES nios_defect(id),
+    price NUMERIC(15, 2) DEFAULT 0,
+    quantity NUMERIC(15, 2) DEFAULT 0,
+    key TEXT,
+    credit_order TEXT,
     is_enable BOOLEAN DEFAULT TRUE 
 );
 

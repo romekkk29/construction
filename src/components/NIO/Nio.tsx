@@ -235,6 +235,34 @@ export default function NioComponent() {
             alert(err.message || 'Error');
         }      
       }
+
+    const handleGoAllPrespuesto =async()=>{
+      if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
+        alert("sin permisos")
+        return
+      }
+      const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
+      const payload={
+        id:selectedNio.id,
+        nioSuppliers:niosSup,
+        user:user
+      }
+      // Verificamos si AL MENOS UNO tiene status 
+      const hasIncomplete = niosSup.some(element => element.price_individual == null || element.price_individual == undefined ||  element.price_individual == 0);
+
+      if (hasIncomplete) {
+          alert("El presupuesto no esta completado");
+          return; // Este return SÍ corta la función handleGoAllLogic
+        }
+        try {
+            const response = await apiClient.nios.nios_finish_presupuest(payload);
+            setSelectedNio(null)
+            setRefreshCount(prev => prev + 1);
+        } catch (err: any) {
+            alert(err.message || 'Error');
+        }      
+      }
+      
       const handleGoAllLogicT =async()=>{
         if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
           alert("sin permisos")
@@ -364,6 +392,29 @@ export default function NioComponent() {
 
       }
     }
+    const handleSendSellTrue=async()=>{ 
+      if (user.role_id!==1&&user.role_id !== 2){
+        alert("sin permisos")
+        return
+      }
+      const payload={
+        id:selectedNio.id,
+        nioSuppliers:niosSupplier?.filter(el=>el.niosId===selectedNio.id),
+        user:user
+      }
+      setLoading(true)
+      try {
+          setSelectedNio(null)
+          const response = await apiClient.nios.putSentSellTrue(payload);
+          setRefreshCount(prev => prev + 1); // <-- Esto activa el useEffect
+          setLoading(false)
+
+      } catch (err: any) {
+        alert(err.message || 'Error');
+          setLoading(false)
+
+      }
+    }
     const addSupply=(supply)=>{
      setSupplies(prev => [...prev,supply])
     }
@@ -385,11 +436,25 @@ export default function NioComponent() {
                     <col.icon className={`h-5 w-5 text-${col.color}-600`} />
                     <span className="font-bold text-slate-800 uppercase tracking-tight text-sm">{col.label}</span>
                     <span className="ml-auto bg-slate-200 px-2 py-0.5 rounded-full text-xs font-bold text-slate-600">
-                      {nios?.filter(n => n.status === col.id && n.projectId===selectedProject?.id).length}
+                      {
+                         col.id==2?
+                         nios?.filter(n => (n.status === col.id || n.status === 8) && n.projectId===selectedProject?.id).length
+                        :col.id==1?nios?.filter(n =>  (n.status === col.id || n.status === 9) && n.projectId===selectedProject?.id).length
+                        :nios?.filter(n => n.status === col.id && n.projectId===selectedProject?.id).length
+                        }
                     </span>
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                    {nios?.filter(n => n.status === col.id && n.projectId===selectedProject?.id).map(nio => {
+                   {nios?.filter(n => {
+                      // Definimos la condición de status según el col.id
+                      const matchesStatus = col.id === 2 
+                          ? (n.status === 2 || n.status === 8) :
+                          col.id === 1 ?(n.status === 1 || n.status === 9)
+                          : n.status === col.id;
+
+                      // Retornamos la combinación de ambas condiciones
+                      return matchesStatus && n.projectId === selectedProject?.id;
+                  }).map(nio => {
                       const project = projects.find(p => p.id === nio.projectId);
  
                       const supplys = niosSupplier.filter(el=>el.niosId===nio.id&&el.status==nio.status)
@@ -576,7 +641,7 @@ export default function NioComponent() {
                             )})}
                           </div>
                         </div>
-                        :selectedNio.status===2?
+                        :selectedNio.status===2||selectedNio.status===8||selectedNio.status===9?
                           <div className="w-full">
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Detalle de Insumos</h3>
                             
@@ -653,12 +718,12 @@ export default function NioComponent() {
                                       />
                                     </div>
                                     {
-                                      user.role_id==2||user.role_id==3?
+                                     user.role_id==3?
                                       null:
                                       <>
                                         <div className="md:col-span-1 relative">
                                           <input 
-                                            disabled={item.status !== 2}
+                                            disabled={item.status !== 2 && item.status !== 8}
                                             type="number" // Mantenemos number para que el teclado móvil sea numérico y la DB reciba el float
                                             placeholder="0"
                                             className={`w-full text-xs p-2 rounded-lg border-slate-200 bg-slate-50 text-right font-semibold outline-none focus:ring-1 focus:ring-blue-400 ${
@@ -1141,6 +1206,17 @@ export default function NioComponent() {
                         </button>
                       </div>
                     )}
+                    {selectedNio.status === 9 && (
+                      <div className="space-y-6">
+                        <p className="text-slate-600">Validar presupuesto para ejecutar compra.</p>
+                        <button 
+                          onClick={() => handleSendSellTrue()}
+                          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
+                        >
+                          Enviar a Compras <ArrowRight />
+                        </button>
+                      </div>
+                    )}
                     {selectedNio.status === 2 && (
                       <div className="space-y-6">
                         <p className="text-slate-600">
@@ -1150,6 +1226,18 @@ export default function NioComponent() {
                           className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
                         >
                           Todas las compras finalizadas pasar la Nio a logistica <ArrowRight />
+                        </button>
+                      </div>
+                    )}
+                    {selectedNio.status === 8 && (
+                      <div className="space-y-6">
+                        <p className="text-slate-600">
+                        </p>
+                        <button 
+                          onClick={() => handleGoAllPrespuesto()}
+                          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
+                        >
+                          Pasar el presupuesto a gerente de obra, son precios aproximados, el margen es 5% <ArrowRight />
                         </button>
                       </div>
                     )}
@@ -1431,6 +1519,8 @@ export default function NioComponent() {
         setNiosSupplier(updatedList);
         setNiosSupplySells(supplySells);
         setNiosDrivers(niosDrivers);
+        console.log(finalNios)
+        console.log(updatedList)
         if(projectsFilerts && projectsFilerts.length>0){
           const saved = localStorage.getItem("selectedProject");
           if(saved){

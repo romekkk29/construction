@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
+type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT_NIO_DEFECT_COST' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
 
 export const pgQuery = async (
   table: string,
@@ -148,6 +148,14 @@ export const pgQuery = async (
           ORDER BY nd.created_date DESC
 
           LIMIT $1 OFFSET $2;`, [data.limit, data.offset]);
+    }
+    case 'SELECT_NIO_DEFECT_COST': {
+      return query(`SELECT 
+          *
+          FROM cost_accounts_defect nd
+          WHERE nd.is_enable = TRUE
+          and nios_defect_id = $1
+          ;`, [data.id]);
     }
     case 'SELECT_NIOS_SECOND': {
       if (data?.id) {

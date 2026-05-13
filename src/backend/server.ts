@@ -10,6 +10,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import cookieSession from 'cookie-session';
 import { userInfo } from 'os';
 import nodemailer from 'nodemailer';
+import { pool } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -586,6 +587,60 @@ app.post('/api/nios_defect', asyncHandler(async (req, res) => {
 
   res.status(201).json(created);
 }));
+app.post('/api/nios_defect_imput', asyncHandler(async (req, res) => {
+  try {
+
+    const nios_defect: any = req.body;
+
+
+    const created = await pgQuery(
+      'cost_accounts_defect',
+      'INSERT',
+      nios_defect
+    );
+
+
+    console.log('Valores para UPDATE:', {
+      price: nios_defect.price,
+      account_id: nios_defect.account_id,
+      price_type: typeof nios_defect.price,
+      account_id_type: typeof nios_defect.account_id
+    });
+
+    const updateResult = await pool.query(
+      `
+        UPDATE cost_accounts
+        SET spent = spent - $1
+        WHERE id = $2
+        RETURNING *
+      `,
+      [
+        Number(nios_defect.price),
+        nios_defect.account_id
+      ]
+    );
+
+    console.log('RESULTADO UPDATE:', updateResult.rowCount);
+    console.log('FILAS ACTUALIZADAS:', updateResult.rows);
+
+    if (updateResult.rowCount === 0) {
+      console.log('NO SE ENCONTRO LA CUENTA');
+    }
+
+    res.status(201).json({
+      created,
+      updatedRows: updateResult.rows
+    });
+
+  } catch (error) {
+    console.error('ERROR EN /api/nios_defect_imput:', error);
+
+    res.status(500).json({
+      error: 'Error interno',
+      detail: error
+    });
+  }
+}));
 app.get('/api/nios_defect', asyncHandler(async (req, res) => {
 
   const limit = Number(req.query.limit) || 10;
@@ -598,7 +653,45 @@ app.get('/api/nios_defect', asyncHandler(async (req, res) => {
 
   res.status(200).json(results);
 }));
+app.get('/api/nios_defect_cost/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  console.log(id)
+  const results = await pgQuery('cost_accounts_defect', 'SELECT_NIO_DEFECT_COST', {
+    id:id});
+
+  res.status(200).json(results);
+}));
 app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { nioSuppliers,user } = req.body;
+
+  const dbNIO = {
+    id,
+    status: 8,
+    to_procurement_at: new Date().toISOString() // Genera: 2024-05-20T15:30:00.000Z
+  };
+
+  const result = await pgQuery('nios', 'UPDATE', dbNIO);
+
+  const dataArray = Array.isArray(nioSuppliers) ? nioSuppliers : (nioSuppliers ? [nioSuppliers] : []);
+
+  const results = dataArray.map((row: any) => ({
+    id:row.id,
+    user_id: user.id,
+    status:8,
+    sent_date:new Date().toISOString()
+  }));
+
+
+  const created = await pgQuery('nios_supplies', 'UPDATE_MANY', results);
+  
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+
+  res.json(result);
+}));
+app.put('/api/nios_sent_seller_true/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { nioSuppliers,user } = req.body;
 
@@ -616,6 +709,37 @@ app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
     id:row.id,
     user_id: user.id,
     status:2,
+    sent_date:new Date().toISOString()
+  }));
+
+
+  const created = await pgQuery('nios_supplies', 'UPDATE_MANY', results);
+  
+  if (!result) {
+    return res.status(404).json({ message: 'Nio no encontrado' });
+  }
+
+  res.json(result);
+}));
+app.put('/api/nios_finish_presupuest/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { nioSuppliers,user } = req.body;
+
+  const dbNIO = {
+    id,
+    status: 9,
+    to_procurement_at: new Date().toISOString() // Genera: 2024-05-20T15:30:00.000Z
+  };
+
+  const result = await pgQuery('nios', 'UPDATE', dbNIO);
+
+  const dataArray = Array.isArray(nioSuppliers) ? nioSuppliers : (nioSuppliers ? [nioSuppliers] : []);
+
+  const results = dataArray.map((row: any) => ({
+    id:row.id,
+    user_id: user.id,
+    status:9,
+    price_individual:row.price_individual,
     sent_date:new Date().toISOString()
   }));
 
@@ -746,6 +870,7 @@ app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
     status: row.status,
     userId: row.user_id,
     quantity: parseFloat(row.quantity),
+    price_individual: parseFloat(row.price_individual),
     accountId: row.account_id,
     detail: row.detail
   }));
