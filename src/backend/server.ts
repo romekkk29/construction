@@ -587,6 +587,20 @@ app.post('/api/nios_defect', asyncHandler(async (req, res) => {
 
   res.status(201).json(created);
 }));
+app.put('/api/nios_defect/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { status } = req.body;
+
+  const dbNIO = {
+    id,
+    status: status
+  };
+
+  const created = await pgQuery('nios_defect', 'UPDATE', dbNIO);
+
+
+  res.status(201).json(created);
+}));
 app.post('/api/nios_defect_imput', asyncHandler(async (req, res) => {
   try {
 

@@ -190,6 +190,14 @@ export const apiClient = {
       });
       return res.json();
     },
+    nios_defect_put: async (p:any): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/nios_defect/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      return res.json();
+    },
     list_nios_defect: async (p:any): Promise<any> => {
         const params = new URLSearchParams({
           limit: String(p.limit ?? 10),

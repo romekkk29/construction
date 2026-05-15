@@ -63,6 +63,35 @@ useEffect(() => {
       key
     });
   };
+  const handleChange = async(
+      type: string,
+      quantity: number,
+      key: string
+    ) => {
+    console.log(selectedRow)
+  
+    try {
+      const payload = {
+        id: selectedRow.defect_id,
+        status: key=="quantity_bad"?12:key=="quantity_distinct"?13:14
+      };
+
+      console.log(payload);
+
+      await apiClient.nios.nios_defect_put(payload);
+      fetchData2()
+      alert("Cambio realizado");
+      setSelectedRow(null)
+       setUnassignModal({
+      open: false,
+      type: "",
+      quantity: 0,
+      key:""
+    });
+    } catch (err: any) {
+      alert(err.message || "Error al desimputar");
+    }
+  };
  const confirmUnassign = async () => {
   if (!creditNoteNumber.trim()) {
     alert("El número de nota de crédito es obligatorio");
@@ -103,7 +132,15 @@ useEffect(() => {
  const response =await apiClient.nios.list_nios_defect_cost({id:row.defect_id});
  setNiosDefectSelec(response)
 }; 
+const fetchData2 = async () => {
+      const [projData, niosDefect] = await Promise.all([
+        apiClient.projects.list(),
+        apiClient.nios.list_nios_defect({ limit: 10, offset: 0 }),
+      ]);
 
+      setProjects(projData);
+      setNiosDefect(niosDefect);
+    };
   useEffect(() => {
     const fetchData = async () => {
       const [projData, niosDefect] = await Promise.all([
@@ -220,14 +257,15 @@ useEffect(() => {
               <p className="font-bold mb-1 underline">Gestión de Cantidades:</p>
               
               {[
-                { label: "Cant. mal estado", value: selectedRow.quantity_bad, key: "quantity_bad" },
-                { label: "Cant. distintos", value: selectedRow.quantity_distinct, key: "quantity_distinct" },
-                { label: "Cant. recibido", value: selectedRow.quantity_recived, key: "quantity_recived" },
-                { label: "Cant. faltante", value: selectedRow.quantity_less, key: "quantity_less" }
+                { label: "Cant. mal estado", value: selectedRow.quantity_bad, key: "quantity_bad",num:12 },
+                { label: "Cant. distintos", value: selectedRow.quantity_distinct, key: "quantity_distinct",num:13 },
+                { label: "Cant. recibido", value: selectedRow.quantity_recived, key: "quantity_recived",num:15},
+                { label: "Cant. faltante", value: selectedRow.quantity_less, key: "quantity_less",num:14 }
               ].map((item) => (
                 <div key={item.key} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100">
                   <p><b>{item.label}:</b> {item.value}</p>
-                {(item.value > 0 && item.key!="quantity_recived" && user.role_id !== 2 && user.role_id !== 3 && niosDefectSelec.filter(el=>el.key === item.key).length < 1)?
+                {(item.value > 0 && item.key!="quantity_recived" && user.role_id !== 7 && user.role_id !== 4 && user.role_id !== 6 && user.role_id !== 2 && user.role_id !== 3 && niosDefectSelec.filter(el=>el.key === item.key).length < 1 && selectedRow.defect_status!=item.num)?
+                  <>
                   <button
                    onClick={() =>
                           handleUnassign(accountDetail, item.value,item.key)
@@ -235,8 +273,19 @@ useEffect(() => {
                     className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-1 rounded text-xs font-medium transition-colors border border-red-200"
                    >
                     Desimputar a cuenta de costo
-                  </button>:niosDefectSelec.filter(el=>el.key === item.key).length > 0?
+                  </button>
+                  <button
+                   onClick={() =>
+                          handleChange(accountDetail, item.value,item.key)
+                        }
+                    className="bg-green-50 text-green-600 hover:bg-red-600 hover:text-white px-3 py-1 rounded text-xs font-medium transition-colors border border-red-200"
+                   >
+                    Cambiar producto
+                  </button>
+                  </>
+                  :niosDefectSelec.filter(el=>el.key === item.key).length > 0?
                   <p>Cuenta desimputada. Numero de nota de credito: {niosDefectSelec.find(el=>el.key === item.key)?.credit_order}</p>
+                  :selectedRow.defect_status==item.num?<p>Se ordeno cambio de producto</p>
                   :null}
                 </div>
               ))}
