@@ -320,6 +320,41 @@ export const apiClient = {
       return res.json();
     },
   },
+  intangiblePayments: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/intangible-payments`);
+      return res.json();
+    },
+    create: async (p: { descripcion: string; precio: number; obraImputarId: number; cuentaImputacionId: number }): Promise<{ id: number }> => {
+      const res = await fetch(`${API_BASE_URL}/intangible-payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    aprobar: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/intangible-payments/${id}/aprobar`, {
+        method: 'PUT',
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    noAprobar: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/intangible-payments/${id}/no-aprobar`, {
+        method: 'PUT',
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    delete: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/intangible-payments/${id}`, {
+        method: 'DELETE',
+      });
+      return res.json();
+    },
+  },
   drivers: {
     list: async (): Promise<Driver[]> => {
       const res = await fetch(`${API_BASE_URL}/drivers`);

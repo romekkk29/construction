@@ -195,7 +195,21 @@ CREATE TABLE IF NOT EXISTS cost_accounts_defect (
     is_enable BOOLEAN DEFAULT TRUE 
 );
 
+-- Tabla de Pagos de Intangibles
+CREATE TABLE IF NOT EXISTS intangible_payments (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    description TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pendiente',
+    price NUMERIC(15, 2) NOT NULL,
+    project_id INTEGER REFERENCES projects(id),
+    cost_account_id INTEGER REFERENCES cost_accounts(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE
+);
+
 -- Índices para optimización de búsquedas comunes
 CREATE INDEX IF NOT EXISTS idx_nios_project ON nios(project_id);
 CREATE INDEX IF NOT EXISTS idx_accounts_project ON cost_accounts(project_id);
 CREATE INDEX IF NOT EXISTS idx_nios_status ON nios(status);
+CREATE INDEX IF NOT EXISTS idx_intangible_payments_project ON intangible_payments(project_id);
+CREATE INDEX IF NOT EXISTS idx_intangible_payments_status ON intangible_payments(status);

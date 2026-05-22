@@ -25,7 +25,8 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
-  Users
+  Users,
+  CreditCard
 } from 'lucide-react';
 
 import UsersComponent from "./components/Users/Users"
@@ -41,6 +42,7 @@ import { useAuth } from './components/Login/ProtectedRoute';
 
 import TrazaComponent from './components/Traza/Traza';
 import DashBoardComponent from './components/Dashboard/Dashboard';
+import PagosIntangiblesComponent from './components/PagosIntangibles/PagosIntangibles';
 
 
 // --- Main App ---
@@ -70,6 +72,9 @@ export default function App() {
   const renderDefect = () => (
     <NioDefectComponent></NioDefectComponent>
   )
+  const renderPagosIntangibles = () => (
+    <PagosIntangiblesComponent />
+  )
   const renderCurrentView = () => {
     switch (activeView) {
       case 'dashboard': return renderDashboard();
@@ -79,6 +84,7 @@ export default function App() {
       case 'users': return renderUsers();
       case 'nio': return renderNio();
       case 'traza': return renderTraza();
+      case 'pagosIntangibles': return renderPagosIntangibles();
       default: return renderNio();
     }
   };
@@ -92,6 +98,9 @@ export default function App() {
          <SidebarItem icon={AlertCircle} label="NIO Defectuosa" active={activeView === 'nioDefect'} onClick={() => { setActiveView('nioDefect') }} />
 
           <SidebarItem icon={Construction} label="Obras y Presupuestos" active={activeView === 'projects'} onClick={() => setActiveView('projects')} />
+          {user.role_id !== 2 && user.role_id !== 3 &&
+            <SidebarItem icon={CreditCard} label="Pagos de Intangibles" active={activeView === 'pagosIntangibles'} onClick={() => setActiveView('pagosIntangibles')} />
+          }
           <SidebarItem icon={Package} label="Logística y compras" active={activeView === 'supplies'} onClick={() => setActiveView('supplies')} />
 
           <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} />
@@ -113,6 +122,9 @@ export default function App() {
               <SidebarItem icon={ClipboardList} label="NIO Board" active={activeView === 'nio'} onClick={() => { setActiveView('nio'); setSidebarOpen(false); }} />
               <SidebarItem icon={AlertCircle} label="NIO Defectuosa" active={activeView === 'nioDefect'} onClick={() => { setActiveView('nioDefect'); setSidebarOpen(false); }} />
               <SidebarItem icon={Construction} label="Obras" active={activeView === 'projects'} onClick={() => { setActiveView('projects'); setSidebarOpen(false); }} />
+              {user.role_id !== 2 && user.role_id !== 3 &&
+                <SidebarItem icon={CreditCard} label="Pagos de Intangibles" active={activeView === 'pagosIntangibles'} onClick={() => { setActiveView('pagosIntangibles'); setSidebarOpen(false); }} />
+              }
               <SidebarItem icon={Package} label="Insumos" active={activeView === 'supplies'} onClick={() => { setActiveView('supplies'); setSidebarOpen(false); }} />
               <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeView === 'dashboard'} onClick={() => { setActiveView('dashboard'); setSidebarOpen(false); }} />
               {/* <SidebarItem icon={Warehouse} label="Stock" active={activeView === 'stock'} onClick={() => { setActiveView('stock'); setSidebarOpen(false); }} /> */}

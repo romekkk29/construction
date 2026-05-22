@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT_NIO_DEFECT_COST' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL';
+type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT_NIO_DEFECT_COST' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL' | 'SELECT_INTANGIBLE_PAYMENTS';
 
 export const pgQuery = async (
   table: string,
@@ -373,6 +373,26 @@ export const pgQuery = async (
       
       const rows = await query(sql, flatValues);
       return rows;
+    }
+    case 'SELECT_INTANGIBLE_PAYMENTS': {
+      return query(`
+        SELECT
+          ip.id,
+          ip.description,
+          ip.status,
+          ip.price,
+          ip.project_id,
+          ip.cost_account_id,
+          ip.created_at,
+          p.name  AS project_name,
+          ca.name AS cost_account_name,
+          ca.detail AS cost_account_detail
+        FROM intangible_payments ip
+        LEFT JOIN projects      p  ON ip.project_id      = p.id
+        LEFT JOIN cost_accounts ca ON ip.cost_account_id = ca.id
+        WHERE ip.is_enable = TRUE
+        ORDER BY ip.created_at DESC
+      `);
     }
     case 'DELETE': {
       await query(`DELETE FROM ${table} WHERE id = $1`, [data.id]);

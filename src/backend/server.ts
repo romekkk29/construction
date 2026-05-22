@@ -1082,6 +1082,87 @@ app.delete('/api/drivers/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'Chofer deshabilitado con éxito', user: result });
 }));
 
+/* ---------- API PAGOS INTANGIBLES ---------- */
+app.get('/api/intangible-payments', asyncHandler(async (_, res) => {
+  const rows = await pgQuery('intangible_payments', 'SELECT_INTANGIBLE_PAYMENTS');
+  const dataArray = Array.isArray(rows) ? rows : [];
+
+  const result = dataArray.map((row: any) => ({
+    id: row.id,
+    descripcion: row.description,
+    estado: row.status,
+    precio: Number(row.price),
+    obraImputarId: row.project_id,
+    obraImputar: row.project_name ?? '',
+    cuentaImputacionId: row.cost_account_id,
+    cuentaImputacion: row.cost_account_name
+      ? `${row.cost_account_name} - ${row.cost_account_detail ?? ''}`
+      : (row.cost_account_detail ?? ''),
+    fecha: row.created_at instanceof Date
+      ? row.created_at.toISOString().split('T')[0]
+      : String(row.created_at ?? '').split('T')[0],
+  }));
+
+  res.json(result);
+}));
+
+app.post('/api/intangible-payments', asyncHandler(async (req, res) => {
+  const { descripcion, precio, obraImputarId, cuentaImputacionId } = req.body;
+
+  const created = await pgQuery('intangible_payments', 'INSERT', {
+    description: descripcion,
+    status: 'pendiente',
+    price: precio,
+    project_id: obraImputarId,
+    cost_account_id: cuentaImputacionId,
+  });
+
+  res.status(201).json({ id: created.id });
+}));
+
+app.put('/api/intangible-payments/:id/aprobar', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  const payment = await pgQuery('intangible_payments', 'SELECT', { id });
+  if (!payment) return res.status(404).json({ message: 'Pago no encontrado' });
+  if (payment.status !== 'pendiente') {
+    return res.status(400).json({ message: 'Solo se pueden aprobar pagos en estado pendiente' });
+  }
+
+  await pgQuery('intangible_payments', 'UPDATE', { id, status: 'aprobado' });
+
+  await pgQuery('cost_accounts', 'UPDATE_COUNT', {
+    id: payment.cost_account_id,
+    column: 'spent',
+    amount: Number(payment.price),
+  });
+
+  res.json({ message: 'Pago aprobado y consumo registrado en cuenta de costo' });
+}));
+
+app.put('/api/intangible-payments/:id/no-aprobar', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  const payment = await pgQuery('intangible_payments', 'SELECT', { id });
+  if (!payment) return res.status(404).json({ message: 'Pago no encontrado' });
+  if (payment.status !== 'pendiente') {
+    return res.status(400).json({ message: 'Solo se pueden rechazar pagos en estado pendiente' });
+  }
+
+  await pgQuery('intangible_payments', 'UPDATE', { id, status: 'no_aprobado' });
+
+  res.json({ message: 'Pago marcado como no aprobado' });
+}));
+
+app.delete('/api/intangible-payments/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  const result = await pgQuery('intangible_payments', 'UPDATE', { id, is_enable: false });
+  if (!result) return res.status(404).json({ message: 'Pago no encontrado' });
+
+  res.json({ message: 'Pago eliminado con éxito' });
+}));
+
 /* ---------- ERROR HANDLER (SIEMPRE AL FINAL) ---------- */
 app.use((err: any, req: any, res: any, _next: any) => {
   console.error(err);

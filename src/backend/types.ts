@@ -123,4 +123,4 @@ export interface ProjectStock {
   lastUpdated: string;
 }
 
-export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability';
+export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles';
