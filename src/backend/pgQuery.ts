@@ -84,7 +84,15 @@ export const pgQuery = async (
                   INNER JOIN projects p ON n.project_id = p.id
                   WHERE n.is_enable = TRUE 
                     AND p.is_enable = TRUE 
-                    AND n.status <> 5`);
+                    AND (
+                      n.status <> 5
+                      OR EXISTS (
+                        SELECT 1 FROM nios_supplies ns
+                        WHERE ns.nios_id = n.id
+                          AND ns.is_enable = TRUE
+                          AND ns.status <> 5
+                      )
+                    )`);
     }
     case 'SELECT_NIO_DEFECT': {
       return query(`SELECT 
