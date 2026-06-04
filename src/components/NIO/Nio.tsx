@@ -108,7 +108,7 @@ export default function NioComponent() {
           niosDriver: item,
           user: user.id
         };
-        const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status===3)
+        const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status<4)
         await apiClient.nios.createDriver(payload);
         if(everySup &&everySup.length===0){
           handleTransitAllLogicT()
@@ -152,7 +152,7 @@ export default function NioComponent() {
       }
       try {
           const response = await apiClient.nios.createReception(payload);
-          const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status===4)
+          const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status!==5)
           
            if(everySup &&everySup.length===0 && item.quantity_less==0){
             handleFinihsLogicT()
@@ -200,7 +200,7 @@ export default function NioComponent() {
       }));
       try {
 
-           const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status===2)
+           const everySup=niosSupplier.filter(el=>el.niosId===item.niosId && el.id!==item.id && el.status<3)
            const response = await apiClient.nios.createSell(p);
            if(everySup &&everySup.length===0){
             handleGoAllLogicT()
@@ -221,7 +221,7 @@ export default function NioComponent() {
       const niosSup = niosSupplier.filter(el => el.niosId == selectedNio.id);
 
       // Verificamos si AL MENOS UNO tiene status 
-      const hasIncomplete = niosSup.some(element => element.status < 3);
+      const hasIncomplete = niosSup.some(element => element.status < 3 || element.status === 8 || element.status === 9);
 
       if (hasIncomplete) {
           alert("La compra no esta completada");
@@ -1497,7 +1497,7 @@ export default function NioComponent() {
                 toLogisticsAt: nc.toLogisticsAt,
                 toTransitAt: nc.toTransitAt,
                 completedAt: nc.completedAt,
-                partial:Key.length>0?true:false            
+                partial:updatedList.some(sup => sup.niosId === nc.niosId && sup.status !== 5)            
             }
             finalNios.push(nio); 
             uniqueKeys.add(comboKey);

@@ -5,6 +5,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { pgQuery } from './pgQuery.js';
 import { Project, Supply, User, CostAccount, Driver } from './types.js';
+import { GoogleGenAI, Type } from '@google/genai';
 import passport, { use } from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import cookieSession from 'cookie-session';
@@ -818,7 +819,7 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
   };
   let result = await pgQuery('nios_driver', 'UPDATE', ql>0?dbNIO2:dbNIO);
   let userR = await pgQuery('users', 'SELECT', { id: user });
-  let niosR = await pgQuery('nios', 'SELECT', { id: id });
+  let niosR = await pgQuery('nios', 'SELECT', { id: niosReception.niosId });
   let obr = await pgQuery('projects', 'SELECT', { id: niosR.project_id });
   let chof = await pgQuery('drivers', 'SELECT', { id: niosReception.driverId });
   let suu = await pgQuery('supplies', 'SELECT', { id: niosReception.supplyId });
@@ -1080,6 +1081,102 @@ app.delete('/api/drivers/:id', asyncHandler(async (req, res) => {
   }
 
   res.json({ message: 'Chofer deshabilitado con éxito', user: result });
+}));
+
+/* ---------- API GEMINI ---------- */
+app.post('/api/gemini/extract-budget', asyncHandler(async (req, res) => {
+  const { file } = req.body;
+
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const prompt = `Actúa como un experto en presupuestos de construcción y auditoría de costos. 
+  Analiza la información proporcionada (ya sea un PDF o datos de una planilla Excel) y extrae TODA la estructura de costos.
+  
+  REGLAS DE EXTRACCIÓN:
+  1. Identifica "accountNumber": Códigos de cuenta o índices (ej: 1.1, 01.A, etc).
+  2. Identifica "name": Nombre del rubro o cuenta principal.
+  3. Identifica "detail": Especificaciones técnicas o descripción del item.
+  4. Identifica "cost": El monto total presupuestado. Limpia símbolos de moneda y separadores de miles.
+  5. Identifica "incidence": Porcentaje de incidencia (%) de la cuenta. Si no está, calcúlalo como (costo_item / costo_total) * 100.
+  
+  RESTRICCIONES:
+  - Solo devuelve un JSON array. No incluyas explicaciones.
+  - Asegúrate de no duplicar items si hay subtotales y totales. Prioriza los items de menor nivel.
+  
+  Devuelve exclusivamente un JSON array de objetos con este esquema:
+  [{"accountNumber": string, "name": string, "detail": string, "cost": number, "incidence": number}]`;
+
+  const parts: any[] = [{ text: prompt }];
+  if (file) parts.push({ inlineData: file });
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-preview-05-20',
+    contents: { parts },
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            accountNumber: { type: Type.STRING },
+            name: { type: Type.STRING },
+            detail: { type: Type.STRING },
+            cost: { type: Type.NUMBER },
+            incidence: { type: Type.NUMBER }
+          },
+          required: ['name', 'detail', 'cost']
+        }
+      }
+    }
+  });
+
+  res.json(JSON.parse(response.text || '[]'));
+}));
+
+app.post('/api/gemini/extract-supplies', asyncHandler(async (req, res) => {
+  const { file } = req.body;
+
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const prompt = `Extrae la base de datos de insumos y materiales de este documento. 
+  Busca:
+  1. Código del insumo
+  2. Detalle/Descripción del insumo (ej. Bolsa de cemento x 50kg)
+  3. Unidad de medida (ej. Bolsa, kg, m3, Global)
+  
+  Ejemplo de unidades de medida: 
+  Detalle: cemento minetti x 50 kg -> Bolsa
+  Detalle: cal x 20 kg -> Bolsa
+  Detalle: arena x 6 -> m3
+  Detalle: ripio x 6 -> m3
+  Detalle: estabilizado x 6 -> m3
+  Detalle: hierro 8 mm -> barra
+  
+  Devuelve exclusivamente un JSON array de objetos.`;
+
+  const parts: any[] = [{ text: prompt }];
+  if (file) parts.push({ inlineData: file });
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-preview-05-20',
+    contents: { parts },
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            code: { type: Type.STRING },
+            detail: { type: Type.STRING },
+            unit: { type: Type.STRING }
+          },
+          required: ['code', 'detail', 'unit']
+        }
+      }
+    }
+  });
+
+  res.json(JSON.parse(response.text || '[]'));
 }));
 
 /* ---------- API PAGOS INTANGIBLES ---------- */
