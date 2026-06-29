@@ -839,9 +839,11 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
       const updateNioSell = await pgQuery('nios_sells', 'UPDATE', niosSellUpdate);
   }
   if (ql !== 0) {
+    const allUsers = await pgQuery('users', 'SELECT');
+    const allEmails = (allUsers as any[]).map((u: any) => u.email).filter(Boolean).join(',');
     const mailOptions = {
       from: '"Sistema LogiCost" <informationapp2626@gmail.com>',
-      to: 'compras@constructoraapolosur.com,ggatica@constructoraapolosur.com,clombardi@constructoraapolosur.com,ggatica47@gmail.com',
+      to: allEmails,
       subject: `⚠️ Alerta de Faltante - NIO ID: ${id}`,
       html: `
         <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
@@ -855,7 +857,6 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
            <p><strong>Detalle:</strong> ${niosReception.detail}</p>
            <p><strong>Insumo:</strong> ${suu.detail}</p>
            <p><strong>Orden de compra:</strong> ${niosReception.oc_number}</p>
-           <p><strong>Precio de compra individual:</strong> ${niosReception.price_individual}</p>
            <p><strong>Proveedor</strong> ${niosReception.supplier}</p>
            <p><strong>Cofer</strong> ${chof.name}</p>
           
@@ -966,7 +967,7 @@ app.delete('/api/nios_supplier/:id', asyncHandler(async (req, res) => {
 
     const mailOptions = {
       from: '"Sistema LogiCost" <informationapp2626@gmail.com>',
-      to: "romegomez29@gmail.com",
+      to: allEmails,
       subject: `🗑️ Insumo Descartado - NIO ID: ${nioSupply.nios_id} | ${project?.name ?? ''}`,
       html: `
         <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; max-width: 600px;">
