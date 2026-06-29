@@ -28,6 +28,14 @@ export const apiClient = {
       return res.json();
     },
 
+    createCaja: async (name: string): Promise<{ id: number; name: string }> => {
+      const res = await fetch(`${API_BASE_URL}/caja`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      return res.json();
+    },
     delete: async (id: string): Promise<{ message: string }> => {
       const res = await fetch(`${API_BASE_URL}/projects/${id}`, {
         method: 'DELETE',
@@ -157,6 +165,12 @@ export const apiClient = {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(p),
+      });
+      return res.json();
+    },
+    deleteSupplier: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/nios_supplier/${id}`, {
+        method: 'DELETE',
       });
       return res.json();
     },

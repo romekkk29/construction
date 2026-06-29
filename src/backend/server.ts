@@ -176,6 +176,13 @@ app.get('/api/projects', asyncHandler(async (_, res) => {
 }));
 /* ---------- API PROJECTS (PROTEGIDA) ---------- */
 
+app.post('/api/caja', asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  if (!name?.trim()) return res.status(400).json({ message: 'El nombre es obligatorio' });
+  const created = await pgQuery('projects', 'INSERT', { name: name.trim() });
+  res.status(201).json(created);
+}));
+
 app.post('/api/projects', asyncHandler(async (req, res) => {
   const project: Project = req.body;
 
@@ -545,7 +552,8 @@ app.post('/api/nios_sell', asyncHandler(async (req, res) => {
   // --- El resto de tu lógica original ---
   const niosSupplyUpdate = {
     id: niosSupply.nios_supplies_id,
-    status: 3
+    status: 3,
+    ...(niosSupply.quantity != null && { quantity: niosSupply.quantity })
   };
 
   const updateAccount = {
@@ -554,7 +562,8 @@ app.post('/api/nios_sell', asyncHandler(async (req, res) => {
     amount: niosSupply.price_total
   };
 
-  const createdNioSell = await pgQuery('nios_sells', 'INSERT', niosSupply);
+  const { quantity: _qty, ...niosSellPayload } = niosSupply;
+  const createdNioSell = await pgQuery('nios_sells', 'INSERT', niosSellPayload);
   const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
   await pgQuery('cost_accounts', 'UPDATE_COUNT', updateAccount);
 
@@ -755,6 +764,7 @@ app.put('/api/nios_finish_presupuest/:id', asyncHandler(async (req, res) => {
     user_id: user.id,
     status:9,
     price_individual:row.price_individual,
+    quantity:row.quantity,
     sent_date:new Date().toISOString()
   }));
 
@@ -939,6 +949,51 @@ app.put('/api/nios_finish_nio/:id', asyncHandler(async (req, res) => {
   }
   res.json(result);
 }));
+app.delete('/api/nios_supplier/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const nioSupply = await pgQuery('nios_supplies', 'SELECT', { id });
+  if (!nioSupply) return res.status(404).json({ message: 'Insumo no encontrado' });
+
+  const result = await pgQuery('nios_supplies', 'UPDATE', { id, is_enable: false });
+
+  try {
+    const nio      = await pgQuery('nios',     'SELECT', { id: nioSupply.nios_id });
+    const project  = await pgQuery('projects', 'SELECT', { id: nio?.project_id });
+    const supply   = await pgQuery('supplies', 'SELECT', { id: nioSupply.supplies_id });
+    const allUsers = await pgQuery('users',    'SELECT');
+    const allEmails = (allUsers as any[]).map((u: any) => u.email).filter(Boolean).join(',');
+
+    const mailOptions = {
+      from: '"Sistema LogiCost" <informationapp2626@gmail.com>',
+      to: "romegomez29@gmail.com",
+      subject: `🗑️ Insumo Descartado - NIO ID: ${nioSupply.nios_id} | ${project?.name ?? ''}`,
+      html: `
+        <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; max-width: 600px;">
+          <h2 style="color: #dc2626;">Insumo Descartado de NIO</h2>
+          <p>Se ha descartado un insumo de una Necesidad Interna de Obra. Este insumo <strong>no contará como deducción del presupuesto</strong>.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 12px 0;" />
+          <p><strong>Obra:</strong> ${project?.name ?? '-'}</p>
+          <p><strong>NIO ID:</strong> ${nioSupply.nios_id}</p>
+          <p><strong>Insumo descartado:</strong> ${supply?.detail ?? '-'} (${supply?.code ?? '-'})</p>
+          <p><strong>Cantidad descartada:</strong> <span style="color: #dc2626; font-weight: bold;">${nioSupply.quantity} ${supply?.unit ?? ''}</span></p>
+          <p><strong>Detalle del pedido:</strong> ${nioSupply.detail ?? '-'}</p>
+          <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-AR')}</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 12px 0;" />
+          <p style="color: #b45309; background: #fef3c7; padding: 10px; border-radius: 6px;">
+            ⚠️ Por favor contactar a <strong>Compras</strong> para entender la razón del descarte y definir cómo proseguir con el pedido.
+          </p>
+        </div>
+      `
+    };
+    transporter.sendMail(mailOptions).catch(err => console.error('Error enviando email descarte:', err));
+  } catch (emailErr) {
+    console.error('Error preparando email de descarte:', emailErr);
+  }
+
+  res.json({ message: 'Insumo eliminado correctamente', result });
+}));
+
 app.delete('/api/nio/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
 

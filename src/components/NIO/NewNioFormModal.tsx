@@ -109,8 +109,8 @@ export default function NioFormModal({
       const isManual = currentItem.supplyId === "new";
       const selectedSupply = supplies.find(s => s.id?.toString() === currentItem.supplyId);
 
-      if (!currentItem.accountId || (!selectedSupply && !currentItem.manualName) || !currentItem.quantity) {
-        alert("Faltan datos críticos para agregar el ítem.");
+      if (!currentItem.accountId || (!selectedSupply && !currentItem.manualName) || !currentItem.quantity || Number(currentItem.quantity) <= 0) {
+        alert("Faltan datos críticos para agregar el ítem. La cantidad debe ser mayor a 0.");
         return;
       }
 
@@ -370,6 +370,8 @@ useEffect(() => {
                 <label className="text-xs font-bold text-emerald-700 uppercase">Cantidad</label>
                 <input 
                   type="number"
+                  min="0.001"
+                  step="any"
                   value={currentItem.quantity}
                   onChange={(e) => setCurrentItem({...currentItem, quantity: e.target.value})}
                   placeholder="0.00" 

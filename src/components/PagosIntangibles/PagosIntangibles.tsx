@@ -49,8 +49,11 @@ export default function PagosIntangiblesComponent() {
   const canCreate = user?.role_id === 1 || user?.role_id === 4;
   const canApprove = user?.role_id === 1;
 
+  const PAGE_SIZE = 20;
   const [pagos, setPagos] = useState<PagoIntangible[]>([]);
   const [loadingPagos, setLoadingPagos] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterObraId, setFilterObraId] = useState<number | ''>('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -71,6 +74,7 @@ export default function PagosIntangiblesComponent() {
           apiClient.projects.list(),
         ]);
         setPagos(pagosData);
+        setCurrentPage(1);
         setProjects(projectsData);
       } catch (err) {
         console.error('Error cargando datos:', err);
@@ -141,6 +145,7 @@ export default function PagosIntangiblesComponent() {
       };
 
       setPagos(prev => [nuevo, ...prev]);
+      setCurrentPage(1);
       handleCloseForm();
     } catch (err: any) {
       setFormError(err?.message ?? 'Error al guardar el pago.');
@@ -167,8 +172,10 @@ export default function PagosIntangiblesComponent() {
     }
   };
 
-  const totalPendiente = pagos.filter(p => p.estado === 'pendiente').reduce((s, p) => s + p.precio, 0);
-  const totalAprobado = pagos.filter(p => p.estado === 'aprobado').reduce((s, p) => s + p.precio, 0);
+  const filteredPagos = filterObraId === '' ? pagos : pagos.filter(p => p.obraImputarId === filterObraId);
+  const totalPendiente = filteredPagos.filter(p => p.estado === 'pendiente').reduce((s, p) => s + p.precio, 0);
+  const totalAprobado = filteredPagos.filter(p => p.estado === 'aprobado').reduce((s, p) => s + p.precio, 0);
+  const obrasUnicas = Array.from(new Map(pagos.filter(p => p.obraImputarId).map(p => [p.obraImputarId, p.obraImputar])).entries());
 
   return (
     <div>
@@ -176,7 +183,7 @@ export default function PagosIntangiblesComponent() {
       <div className="flex justify-between items-center pb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Pagos de Intangibles</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Gestión de pagos por servicios intangibles imputados a obras</p>
+          <p className="text-sm text-slate-500 mt-0.5">Gestión de pagos por servicios intangibles imputados a obras/cuentas</p>
         </div>
         {canCreate && (
           <button
@@ -210,6 +217,26 @@ export default function PagosIntangiblesComponent() {
         </div>
       </div>
 
+      {/* Filter */}
+      <div className="mb-4 flex items-center gap-3">
+        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Filtrar por obra:</label>
+        <select
+          value={filterObraId}
+          onChange={e => { setFilterObraId(e.target.value === '' ? '' : Number(e.target.value)); setCurrentPage(1); }}
+          className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+        >
+          <option value="">Todas las obras/cuentas</option>
+          {obrasUnicas.map(([id, nombre]) => (
+            <option key={id} value={id!}>{nombre}</option>
+          ))}
+        </select>
+        {filterObraId !== '' && (
+          <button onClick={() => { setFilterObraId(''); setCurrentPage(1); }} className="text-xs text-slate-400 hover:text-slate-700 underline">
+            Limpiar filtro
+          </button>
+        )}
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -219,7 +246,7 @@ export default function PagosIntangiblesComponent() {
                 <th className="text-left px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Descripción</th>
                 <th className="text-left px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Estado</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Precio</th>
-                <th className="text-left px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Obra a Imputar</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Obra/Cuenta a Imputar</th>
                 <th className="text-left px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Cuenta de Imputación</th>
                 <th className="text-left px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Fecha</th>
                 <th className="text-center px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wider">Acciones</th>
@@ -242,12 +269,12 @@ export default function PagosIntangiblesComponent() {
                   </td>
                 </tr>
               )}
-              {pagos.map(pago => {
+              {filteredPagos.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(pago => {
                 const cfg = ESTADO_CONFIG[pago.estado];
                 return (
                   <tr key={pago.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="px-5 py-4 font-medium text-slate-800 max-w-xs">
-                      <span className="line-clamp-2">{pago.descripcion}</span>
+                      <span className="whitespace-pre-wrap break-words">{pago.descripcion}</span>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.color}`}>
@@ -292,6 +319,37 @@ export default function PagosIntangiblesComponent() {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        {filteredPagos.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50">
+            <span className="text-xs text-slate-500">
+              Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredPagos.length)} de {filteredPagos.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >← Anterior</button>
+              {Array.from({ length: Math.ceil(filteredPagos.length / PAGE_SIZE) }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                    page === currentPage
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-600'
+                  }`}
+                >{page}</button>
+              ))}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredPagos.length / PAGE_SIZE), p + 1))}
+                disabled={currentPage === Math.ceil(filteredPagos.length / PAGE_SIZE)}
+                className="px-3 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >Siguiente →</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal - Nuevo Pago */}
@@ -344,7 +402,7 @@ export default function PagosIntangiblesComponent() {
               {/* Obra a imputar */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Obra a Imputar <span className="text-red-500">*</span>
+                  Obra/Cuenta a Imputar <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -355,7 +413,7 @@ export default function PagosIntangiblesComponent() {
                     className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:opacity-60"
                   >
                     <option value="">
-                      {loadingProjects ? 'Cargando obras...' : 'Seleccionar obra...'}
+                      {loadingProjects ? 'Cargando obras/cuentas...' : 'Seleccionar obra/cuenta...'}
                     </option>
                     {projects.map(p => (
                       <option key={p.id} value={p.id}>{p.name}</option>
@@ -382,7 +440,7 @@ export default function PagosIntangiblesComponent() {
                   >
                     <option value="">
                       {!form.obraImputarId
-                        ? 'Primero seleccione una obra'
+                        ? 'Primero seleccione una obra/cuenta'
                         : loadingAccounts
                         ? 'Cargando cuentas...'
                         : 'Seleccionar cuenta...'}

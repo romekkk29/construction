@@ -1,6 +1,7 @@
 import React, {useState,useEffect,useRef} from "react";
 
 import ProjectFormModal from "./ObraFormModal";
+import CajaFormModal from "./CajaFormModal";
 import CostFormModal from "./CostFormModal"
 import InflationModal  from "./InflaModal"
 import { Role, Project,User,CostAccount} from "@/src/backend/types";
@@ -46,6 +47,7 @@ const parseExcelToCSV = (file: File): Promise<string> => {
 
 export default function ObraComponent() {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+    const [isCajaModalOpen, setIsCajaModalOpen] = useState(false);
     const [isProjectDeleteModalOpen, setIsProjectDeleteModalOpen] = useState(false);
     const [isCostAccountModalOpen, setIsCostAccountModalOpen] = useState(false);
     const [isCostAccountDeleteModalOpen, setIsCostAccountDeleteModalOpen] = useState(false);
@@ -108,6 +110,15 @@ export default function ObraComponent() {
       setIsProjectModalOpen(false);
     } catch (err: any) {
       alert(err.message || 'Error al crear usuario');
+    }
+  };
+  const handleCreateCaja = async (name: string) => {
+    try {
+      const response = await apiClient.projects.createCaja(name);
+      setProjects(prev => [...prev, { id: response.id, name: response.name, accounts: [], stockBalance: 0, isEnable: true } as any]);
+      setIsCajaModalOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Error al crear caja');
     }
   };
   const handleCreateCostAccount = async (project: CostAccount) => {
@@ -345,7 +356,7 @@ export default function ObraComponent() {
     fetchData();
   }, []);
   return (    
-    
+    <>
     <div >
                   <input 
                         type="file" 
@@ -443,14 +454,20 @@ export default function ObraComponent() {
                     <div className="flex pb-6 justify-between items-center">
                         <h2 className="text-2xl font-bold text-slate-800">Gestión de Obras</h2>
                        {user.role_id==1||user.role_id==4?   
-
+                        <div className="flex gap-2">
                         <button 
                         onClick={() => setIsProjectModalOpen(true)}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200 transition-all"
                         >
-
                         <Plus className="h-5 w-5" /> Nueva Obra
-                        </button>:null}
+                        </button>
+                        <button 
+                        onClick={() => setIsCajaModalOpen(true)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all"
+                        >
+                        <Plus className="h-5 w-5" /> Nueva Caja
+                        </button>
+                        </div>:null}
                     </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -891,5 +908,11 @@ export default function ObraComponent() {
                         </div>
                     )}
                     </div>
+      <CajaFormModal
+        isOpen={isCajaModalOpen}
+        onClose={() => setIsCajaModalOpen(false)}
+        onSubmit={handleCreateCaja}
+      />
+    </>
   );
 }

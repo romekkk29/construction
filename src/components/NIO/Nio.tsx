@@ -170,6 +170,16 @@ export default function NioComponent() {
         setSelecItemDefect(item)
     }
     
+    const handleDeleteSupplier = async(item)=>{
+      if(!confirm(`¿Eliminar el insumo "${item.detail || item.supplyId}" de esta NIO?`)) return;
+      try {
+        await apiClient.nios.deleteSupplier(item.id);
+        setNiosSupplier(prev => prev.filter(s => s.id !== item.id));
+      } catch(err:any) {
+        alert(err.message || 'Error al eliminar');
+      }
+    }
+
     const handleGoLogic = async(item)=>{
       if(user.role_id!=1&&user.role_id!=5&&user.role_id!=6){
         alert("sin permisos")
@@ -179,6 +189,10 @@ export default function NioComponent() {
         alert("Faltan datos para completar esta compra")
         return
       }
+      if(!item.quantity || item.quantity <= 0){
+        alert("La cantidad debe ser mayor a 0")
+        return
+      }
       const payload={
         nios_supplies_id:item.id,
         user_id:user.id,
@@ -186,7 +200,8 @@ export default function NioComponent() {
         oc_number:item.oc_number,
         supplier:item.supplier,
         price_individual:item.price_individual,
-        price_total:item.quantity*item.price_individual
+        price_total:item.quantity*item.price_individual,
+        quantity:item.quantity
       }
       const p={
         account_id:item.accountId,
@@ -249,7 +264,12 @@ export default function NioComponent() {
       }
       // Verificamos si AL MENOS UNO tiene status 
       const hasIncomplete = niosSup.some(element => element.price_individual == null || element.price_individual == undefined ||  element.price_individual == 0);
+      const hasInvalidQty = niosSup.some(element => !element.quantity || element.quantity <= 0);
 
+      if (hasInvalidQty) {
+          alert("Todos los insumos deben tener una cantidad mayor a 0");
+          return;
+      }
       if (hasIncomplete) {
           alert("El presupuesto no esta completado");
           return; // Este return SÍ corta la función handleGoAllLogic
@@ -682,9 +702,20 @@ export default function NioComponent() {
 
                                     {/* 2. Cantidad */}
                                     <div className="md:col-span-1 text-center">
-                                      <p className="text-sm font-black text-slate-800">
-                                        {item.quantity} <span className="text-[10px] text-slate-500 font-normal">{det?.unit}</span>
-                                      </p>
+                                      {item.status === 2 ||  item.status === 8? (
+                                        <input
+                                          type="number"
+                                          min="0.001"
+                                          step="any"
+                                          className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-400 outline-none transition-all text-center font-bold"
+                                          value={item.quantity ?? ''}
+                                          onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value))}
+                                        />
+                                      ) : (
+                                        <p className="text-sm font-black text-slate-800">
+                                          {item.quantity} <span className="text-[10px] text-slate-500 font-normal">{det?.unit}</span>
+                                        </p>
+                                      )}
                                     </div>
 
                                     {/* 3. Cuenta (Ahora sí toma el espacio asignado) */}
@@ -757,11 +788,15 @@ export default function NioComponent() {
                                     <div className="md:col-span-2 pl-1">
                                       {
                                         item.status===2?
-                                      
+                                      <div className="flex flex-col gap-1">
                                       <button onClick={()=>handleGoLogic(item)} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-1.5 px-1 transition-all flex flex-col items-center justify-center shadow-sm active:scale-95">
                                         <span className="text-[10px] font-bold tracking-tight">Guardar y pasar</span>
                                         <span className="text-[10px] font-bold tracking-tight">a Logística</span>
                                       </button>
+                                      <button onClick={()=>handleDeleteSupplier(item)} className="w-full flex items-center justify-center gap-1 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg py-1 transition-all">
+                                        <Trash2 size={11}/><span>Eliminar insumo</span>
+                                      </button>
+                                      </div>
                                         : item.status===3?
                                         <p className="text-[12px] leading-tight font-medium text-emerald-700 break-words bg-emerald-50 p-1.5 rounded border border-emerald-100">
                                         En logística desde {item.creation_date?.slice(0, 10)}
