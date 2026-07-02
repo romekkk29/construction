@@ -3,7 +3,7 @@ import React, {useState,useEffect,useRef} from "react";
 import ProjectFormModal from "./ObraFormModal";
 import CajaFormModal from "./CajaFormModal";
 import CostFormModal from "./CostFormModal"
-import InflationModal  from "./InflaModal"
+import InflaHistoryView from "./InflaHistoryView"
 import { Role, Project,User,CostAccount} from "@/src/backend/types";
 import { apiClient } from './../../api';
 import { TrendingUp,Plus, Pencil,X, Trash2,Loader2,BrainCircuit, Save,Edit3, Clock } from "lucide-react";
@@ -54,9 +54,7 @@ export default function ObraComponent() {
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [editingCostAccount, setEditingCostAccount] = useState<Project | null>(null);
 
-    const [isInfla, setIsInfla] = useState(false);
-    const [projectInfla, setProjectInfla] = useState("");
-    const [projectInflaId, setProjectInflaId] = useState(null);
+    const [selectedInflaProject, setSelectedInflaProject] = useState<{ id: number; name: string } | null>(null);
 
    const { user } = useAuth();
 
@@ -201,19 +199,17 @@ export default function ObraComponent() {
         setIsProjectModalOpen(false);
         setSelectedProject(null)
     };
-    const handleSuInfla = async (perce) => {
-        setLoading(true)
-        let p={
-            projectId:projectInflaId,
-            percentage:perce,
-            user_id:user.id
-        }
-        const res = await apiClient.costAccounts.infla(p);
+    const handleSuInfla = async (perce: number) => {
+        if (!selectedInflaProject) return;
+        setLoading(true);
+        const p = {
+            projectId: selectedInflaProject.id,
+            percentage: perce,
+            user_id: user.id
+        };
+        await apiClient.costAccounts.infla(p);
         fetchDatas();
-        setLoading(false)
-        setIsInfla(false);
-        setProjectInfla("");
-        setProjectInflaId(null);
+        setLoading(false);
     };
    const fetchDatas = async () => {
       try {
@@ -378,19 +374,19 @@ export default function ObraComponent() {
                 initialData={editingProject ?? undefined}
                 onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
                 />
-                <InflationModal
-                    isOpen={isInfla}
-                    onClose={() => {
-                    setIsInfla(false);
-                    setProjectInfla("");
-                    setProjectInflaId(null);
-                }}
-                    onSubmit={(perce) => {
-                    handleSuInfla(perce)
-                }}
-                    projectName={projectInfla}
-
-                />
+                {selectedInflaProject && (
+                  <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+                    <div className="max-w-4xl mx-auto px-6 py-8">
+                      <InflaHistoryView
+                        projectId={selectedInflaProject.id}
+                        projectName={selectedInflaProject.name}
+                        userId={user.id}
+                        onBack={() => setSelectedInflaProject(null)}
+                        onInflaSubmit={handleSuInfla}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 
                 <ConfirmDeleteModal
@@ -503,10 +499,7 @@ export default function ObraComponent() {
                                     type="button"
                                     onClick={(e) => {
                                     e.stopPropagation();
-                                    setIsInfla(true)
-                                    setProjectInfla(project.name)
-                                    setProjectInflaId(project.id)
-
+                                    setSelectedInflaProject({ id: project.id, name: project.name });
                                     }}
                                     className="
                                     p-2 rounded-lg border border-slate-200

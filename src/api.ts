@@ -112,6 +112,10 @@ export const apiClient = {
       });
       return res.json();
     },
+    inflaList: async (projectId: number): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/infla/${projectId}`);
+      return res.json();
+    },
     infla: async (p:any): Promise<{ message: string }> => {
       const res = await fetch(`${API_BASE_URL}/costaccounts/inflation-manual/${p.projectId}`, {
         method: 'PUT',

@@ -387,6 +387,12 @@ app.put('/api/costaccounts/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
+app.get('/api/infla/:projectId', asyncHandler(async (req, res) => {
+  const projectId = parseInt(req.params.projectId, 10);
+  const rows = await pgQuery('infla', 'SELECT_INFLA', { project_id: projectId });
+  res.json(rows);
+}));
+
 app.put('/api/costaccounts/inflation-manual/:id', asyncHandler(async (req, res) => {
   const { projectId, percentage, user_id} = req.body;
   const factor = 1 + (Number(percentage) / 100);
