@@ -810,37 +810,37 @@ export default function ObraComponent() {
                                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600">Cuenta</th>
                                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600">Detalle</th>
                                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600">Presupuesto</th>
-                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Gastado</th>
-                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Saldo</th>
-                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">% Incidencia</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Gasto Real</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Saldo Real</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Gasto Esperado</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600">Saldo Esperado</th>
+                                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Variación</th>
                                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
                                                     {(() => {
-                                                        const totalBudget = selectedProject.accounts?.reduce((sum, acc) => sum + acc.budgeted, 0) ?? 0;
                                                         return selectedProject.accounts?.map(acc => {
-                                                            const incidence = (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
                                                             const isCreated = acc.isCreatedYet !== false;
+                                                            const saldoReal = acc.budgeted - (acc.spent ?? 0);
+                                                            const saldoEsperado = acc.budgeted - (acc.spentExpected ?? 0);
+                                                            const variacion = saldoReal - saldoEsperado;
 
                                                             return (
                                                                 <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
                                                                     <td className="px-6 py-4 font-medium text-slate-800">{acc.name}</td>
                                                                     <td className="px-6 py-4 text-slate-600 text-sm">{acc.detail}</td>
                                                                     <td className="px-6 py-4 text-slate-800">${acc.budgeted.toLocaleString()}</td>
-                                                                    <td className="px-6 py-4 text-red-600 font-medium">${acc.spent.toLocaleString()}</td>
-                                                                            <td className={`px-6 py-4 font-bold ${
-                                                                            (acc.budgeted - acc.spent) < 0 
-                                                                                ? 'text-orange-600' 
-                                                                                : 'text-emerald-600'
-                                                                            }`}>
-                                                                            ${(acc.budgeted - acc.spent).toLocaleString()}
-                                                                            </td> 
-                                                                            <td className="px-6 py-4 text-right">
-                                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${acc.incidence !== undefined ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
-                                                                            {incidence.toFixed(2)}%
-                                                                            {acc.incidence !== undefined && <BrainCircuit className="inline-block h-3 w-3 ml-1" title="Analizado por IA" />}
-                                                                        </span>
+                                                                    <td className="px-6 py-4 text-red-600 font-medium">${(acc.spent ?? 0).toLocaleString()}</td>
+                                                                    <td className={`px-6 py-4 font-bold ${saldoReal < 0 ? 'text-orange-600' : 'text-emerald-600'}`}>
+                                                                        ${saldoReal.toLocaleString()}
+                                                                    </td>
+                                                                    <td className="px-6 py-4 text-slate-700">${(acc.spentExpected ?? 0).toLocaleString()}</td>
+                                                                    <td className={`px-6 py-4 font-medium ${saldoEsperado < 0 ? 'text-orange-600' : 'text-blue-600'}`}>
+                                                                        ${saldoEsperado.toLocaleString()}
+                                                                    </td>
+                                                                    <td className={`px-6 py-4 text-right font-bold ${variacion < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                                        {variacion >= 0 ? '+' : ''}${variacion.toLocaleString()}
                                                                     </td>
                                                                      {user.role_id==1||user.role_id==4?
                                                                     <td className="px-6 py-4">

@@ -21,6 +21,7 @@ export default function CostFormModal({
 
   // Estado para manejar la visualización del input (string con formato)
   const [displayBudget, setDisplayBudget] = useState("");
+  const [displaySpentExpected, setDisplaySpentExpected] = useState("");
 
   // Funciones de utilidad
   const formatVisual = (val: string | number) => {
@@ -42,55 +43,58 @@ export default function CostFormModal({
     } else {
       setDisplayBudget("");
     }
+    if (initialData?.spentExpected) {
+      setDisplaySpentExpected(formatVisual(initialData.spentExpected));
+    } else {
+      setDisplaySpentExpected("");
+    }
   }, [initialData, isOpen]);
 
-const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  let value = e.target.value;
-
-  // 1. Eliminar todo lo que no sea número o coma
+const formatInput = (value: string): string => {
   value = value.replace(/[^0-9,]/g, "");
-
-  // 2. Evitar más de una coma
   const parts = value.split(",");
-  if (parts.length > 2) return;
-
-  // 3. Formatear la parte entera con puntos de miles
+  if (parts.length > 2) return value;
   let integerPart = parts[0];
-  let decimalPart = parts[1];
-
+  const decimalPart = parts[1];
   if (integerPart) {
-    // Convertimos a número para usar toLocaleString y luego a string de nuevo
-    const number = parseInt(integerPart, 10);
-    integerPart = number.toLocaleString("de-DE");
+    integerPart = parseInt(integerPart, 10).toLocaleString("de-DE");
   }
+  return parts.length > 1 ? `${integerPart},${decimalPart ?? ""}` : integerPart;
+};
 
-  // 4. Reconstruir el string visual
-  // Si hay una coma, la mantenemos (aunque decimalPart esté vacío para que pueda seguir escribiendo)
-  const formattedValue = parts.length > 1 ? `${integerPart},${decimalPart ?? ""}` : integerPart;
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setDisplayBudget(formatInput(e.target.value));
+};
 
-  setDisplayBudget(formattedValue);
+const handleChangeSpentExpected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setDisplaySpentExpected(formatInput(e.target.value));
 };
 
 const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   
   // Limpieza final para la base de datos: quitar puntos y cambiar coma por punto
-  const finalValue = parseFloat(displayBudget.replace(/\./g, "").replace(",", "."));
+  const finalBudget = parseFloat(displayBudget.replace(/\./g, "").replace(",", "."));
+  const finalSpentExpected = parseFloat(displaySpentExpected.replace(/\./g, "").replace(",", "."));
   
   const costAccount: CostAccount = {
     ...initialData,
     id: initialData?.id ?? 0,
     name: (e.currentTarget.elements.namedItem("name") as HTMLInputElement).value,
     detail: (e.currentTarget.elements.namedItem("detail") as HTMLInputElement).value,
-    budgeted: isNaN(finalValue) ? 0 : finalValue
+    budgeted: isNaN(finalBudget) ? 0 : finalBudget,
+    spentExpected: isNaN(finalSpentExpected) ? 0 : finalSpentExpected
   };
 
   onSubmit(costAccount);
 };
 
   const handleBlur = () => {
-    // Al salir del input, aplicamos el formato bonito 1.000.000,00
     setDisplayBudget(formatVisual(displayBudget));
+  };
+
+  const handleBlurSpentExpected = () => {
+    setDisplaySpentExpected(formatVisual(displaySpentExpected));
   };
 
   return (
@@ -125,14 +129,25 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1 col-span-1">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">Presupuesto</label>
             <input
-              type="text" // Cambiado a text para soportar puntos/comas visuales
+              type="text"
               value={displayBudget}
               onChange={handleChange}
               onBlur={handleBlur}
+              placeholder="0,00"
+              className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-right font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Gasto Esperado</label>
+            <input
+              type="text"
+              value={displaySpentExpected}
+              onChange={handleChangeSpentExpected}
+              onBlur={handleBlurSpentExpected}
               placeholder="0,00"
               className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-right font-mono"
             />

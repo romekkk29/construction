@@ -19,7 +19,8 @@ VALUES
  ('Gerente de Cómputo y presupuesto'),
  ('Gerente de Compras'),
  ('Área Compras'),
- ('Visualizadores');
+ ('Visualizadores'),
+  ('Cliente');
 
 -- Tabla de Usuarios (Usuarios)
 CREATE TABLE IF NOT EXISTS users (
@@ -55,8 +56,8 @@ CREATE TABLE IF NOT EXISTS projects (
     start_date DATE,
     duration_days INTEGER,
     -- Cambiamos TEXT por INTEGER para las llaves foráneas
-    project_manager_id INTEGER NOT NULL,
-    general_manager_id INTEGER NOT NULL,
+    project_manager_id INTEGER,
+    general_manager_id INTEGER,
     client TEXT,
     inspector TEXT,
     stock_balance NUMERIC(15, 2) DEFAULT 0,
@@ -65,6 +66,15 @@ CREATE TABLE IF NOT EXISTS projects (
     -- Llaves Foráneas
     CONSTRAINT fk_project_manager FOREIGN KEY (project_manager_id) REFERENCES users(id),
     CONSTRAINT fk_general_manager FOREIGN KEY (general_manager_id) REFERENCES users(id)
+);
+
+-- Tabla de Relación Proyecto-Usuario (un usuario puede tener N proyectos)
+CREATE TABLE IF NOT EXISTS project_users (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    is_enable BOOLEAN DEFAULT TRUE,
+    CONSTRAINT uq_project_user UNIQUE (project_id, user_id)
 );
 
 -- Tabla de Cuentas de Costo (Desglose del presupuesto)
@@ -76,6 +86,7 @@ CREATE TABLE IF NOT EXISTS cost_accounts (
     detail TEXT,
     budgeted NUMERIC(15, 2) DEFAULT 0,
     spent NUMERIC(15, 2) DEFAULT 0,
+    spent_expected NUMERIC(15, 2) DEFAULT 0,
     is_enable BOOLEAN DEFAULT TRUE 
 );
 
@@ -213,3 +224,60 @@ CREATE INDEX IF NOT EXISTS idx_accounts_project ON cost_accounts(project_id);
 CREATE INDEX IF NOT EXISTS idx_nios_status ON nios(status);
 CREATE INDEX IF NOT EXISTS idx_intangible_payments_project ON intangible_payments(project_id);
 CREATE INDEX IF NOT EXISTS idx_intangible_payments_status ON intangible_payments(status);
+CREATE INDEX IF NOT EXISTS idx_project_users_project ON project_users(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_users_user ON project_users(user_id);
+
+-- Tabla de Pagos a Clientes
+CREATE TABLE IF NOT EXISTS client_payments (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    client_user_id INTEGER REFERENCES users(id),
+    amount NUMERIC(15, 2) NOT NULL,
+    payment_date DATE NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'ARS',
+    detail TEXT,
+    document_name TEXT,
+    document_original_name TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_client_payments_project ON client_payments(project_id);
+CREATE INDEX IF NOT EXISTS idx_client_payments_client ON client_payments(client_user_id);
+
+-- Tabla de Avances de Obra
+CREATE TABLE IF NOT EXISTS project_advances (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    client_user_id INTEGER REFERENCES users(id),
+    detail TEXT,
+    advance_date DATE NOT NULL,
+    document_name TEXT,
+    document_original_name TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_project_advances_project ON project_advances(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_advances_client ON project_advances(client_user_id);
+
+-- Tabla de Facturas
+CREATE TABLE IF NOT EXISTS project_invoices (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    client_user_id INTEGER REFERENCES users(id),
+    detail TEXT,
+    invoice_date DATE NOT NULL,
+    document_name TEXT,
+    document_original_name TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_project_invoices_project ON project_invoices(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_invoices_client ON project_invoices(client_user_id);
+
+-- Migrations: make client_user_id nullable if tables already exist
+ALTER TABLE IF EXISTS client_payments ALTER COLUMN client_user_id DROP NOT NULL;
+ALTER TABLE IF EXISTS project_advances ALTER COLUMN client_user_id DROP NOT NULL;
+ALTER TABLE IF EXISTS project_invoices ALTER COLUMN client_user_id DROP NOT NULL;

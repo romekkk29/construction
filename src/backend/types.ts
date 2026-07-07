@@ -10,6 +10,7 @@ export interface User {
   lastName: string;
   rol: Role;
   permissionsIds?: number[];
+  projectIds?: number[];
   isEnable?:boolean;
   email: string;
   password?: string;
@@ -46,6 +47,7 @@ export interface CostAccount {
   detail: string;
   budgeted: number;
   spent?: number;
+  spentExpected?: number;
   accountNumber?: string;
   incidence?: number;
   isCreatedYet?:boolean;
@@ -123,4 +125,48 @@ export interface ProjectStock {
   lastUpdated: string;
 }
 
-export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles';
+export interface ProjectAdvance {
+  id: number;
+  projectId: number;
+  projectName?: string;
+  clientUserIds?: number[];
+  detail?: string;
+  advanceDate: string;
+  documentName?: string;
+  documentOriginalName?: string;
+  createdBy?: number;
+  createdByName?: string;
+  createdAt?: string;
+}
+
+export interface ProjectInvoice {
+  id: number;
+  projectId: number;
+  projectName?: string;
+  clientUserIds?: number[];
+  detail?: string;
+  invoiceDate: string;
+  documentName?: string;
+  documentOriginalName?: string;
+  createdBy?: number;
+  createdByName?: string;
+  createdAt?: string;
+}
+
+export interface ClientPayment {
+  id: number;
+  projectId: number;
+  projectName?: string;
+  clientUserIds?: number[];
+  amount: number;
+  paymentDate: string;
+  currency: string;
+  detail?: string;
+  documentName?: string;
+  documentOriginalName?: string;
+  createdBy?: number;
+  createdByName?: string;
+  createdAt?: string;
+}
+
+export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas';

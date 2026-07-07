@@ -27,11 +27,7 @@ export default function NioComponent() {
     
     const { user } = useAuth();
     const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(() => {
-    const saved = localStorage.getItem("selectedProject");
-    // Si existe, lo parseamos; si no, devolvemos null
-    return saved ? JSON.parse(saved) : null;
-  }); 
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
     const [isDeleteNio, setIsDeleteNio] = useState<Boolean>(false);
     const [isDefectNio, setIsDefectNio] = useState<Boolean>(false);
@@ -54,9 +50,17 @@ export default function NioComponent() {
       });
     };
     const  handleOpenNio=()=>{
-        if(user.role_id!==1&&user.role_id!==2&&user.role_id!==3){
-            alert("sin permisos")
-            return
+        const isCaja = !selectedProject?.projectManager;
+        if(isCaja){
+            if(user.role_id!==1){
+                alert("Sin permisos: solo el administrador puede crear NIOs en una Caja")
+                return
+            }
+        }else{
+            if(user.role_id!==1&&user.role_id!==2&&user.role_id!==3){
+                alert("sin permisos")
+                return
+            }
         }
         setIsProjectModalOpen(true)
       } 
@@ -538,7 +542,7 @@ export default function NioComponent() {
                                 <div className="grid gap-1 text-xs">
                                   <div className="bg-slate-50 p-2 rounded-lg">
                                     <p className="text-slate-400">Cantidad</p>
-                                    <p className="font-bold">{sup.quantity} {det.unit}</p>
+                                    <p className="font-bold">{sup.quantity} {det?.unit}</p>
                                   </div>
                                 </div>
                             </div>)})
@@ -1559,7 +1563,14 @@ export default function NioComponent() {
         if(projectsFilerts && projectsFilerts.length>0){
           const saved = localStorage.getItem("selectedProject");
           if(saved){
-            handleSelectedProject(JSON.parse(saved))
+            const savedProject = JSON.parse(saved);
+            const stillExists = projectsFilerts.find(p => p.id === savedProject.id);
+            if(stillExists){
+              handleSelectedProject(savedProject);
+            }else{
+              localStorage.removeItem("selectedProject");
+              handleSelectedProject(projectsFilerts[0]);
+            }
           }else{
               handleSelectedProject(projectsFilerts[0])
           }

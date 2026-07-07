@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, CheckCircle, XCircle, Clock, CreditCard, Loader2 } from 'lucide-react';
 import { apiClient } from '../../api';
 import { Project, CostAccount } from '../../backend/types';
@@ -58,6 +58,10 @@ export default function PagosIntangiblesComponent() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [costAccounts, setCostAccounts] = useState<CostAccount[]>([]);
@@ -108,7 +112,22 @@ export default function PagosIntangiblesComponent() {
     setIsFormOpen(false);
     setForm(EMPTY_FORM);
     setFormError('');
+    setFileError('');
+    setDocumentFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setCostAccounts([]);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > MAX_FILE_SIZE) {
+      setFileError('El documento supera el límite de 100 MB.');
+      e.target.value = '';
+      setDocumentFile(null);
+    } else {
+      setFileError('');
+      setDocumentFile(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,12 +139,13 @@ export default function PagosIntangiblesComponent() {
 
     setSubmitting(true);
     try {
-      const created = await apiClient.intangiblePayments.create({
-        descripcion: form.descripcion.trim(),
-        precio: parseFloat(Number(form.precio).toFixed(2)),
-        obraImputarId: Number(form.obraImputarId),
-        cuentaImputacionId: Number(form.cuentaImputacionId),
-      });
+      const fd = new FormData();
+      fd.append('descripcion', form.descripcion.trim());
+      fd.append('precio', parseFloat(Number(form.precio).toFixed(2)).toString());
+      fd.append('obraImputarId', form.obraImputarId);
+      fd.append('cuentaImputacionId', form.cuentaImputacionId);
+      if (documentFile) fd.append('document', documentFile);
+      const created = await apiClient.intangiblePayments.create(fd);
 
       const selectedProject = projects.find(p => p.id === Number(form.obraImputarId));
       const selectedAccount = costAccounts.find(c => c.id === Number(form.cuentaImputacionId));
@@ -146,6 +166,7 @@ export default function PagosIntangiblesComponent() {
 
       setPagos(prev => [nuevo, ...prev]);
       setCurrentPage(1);
+      setDocumentFile(null);
       handleCloseForm();
     } catch (err: any) {
       setFormError(err?.message ?? 'Error al guardar el pago.');
@@ -182,7 +203,7 @@ export default function PagosIntangiblesComponent() {
       {/* Header */}
       <div className="flex justify-between items-center pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Pagos de Intangibles</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Pagos de Obra</h2>
           <p className="text-sm text-slate-500 mt-0.5">Gestión de pagos por servicios intangibles imputados a obras/cuentas</p>
         </div>
         {canCreate && (
@@ -457,6 +478,22 @@ export default function PagosIntangiblesComponent() {
                 </div>
               </div>
 
+              {/* Documento */}
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Documento <span className="text-slate-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={handleFileChange}
+                  className="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {fileError && <p className="text-xs text-red-500 mt-1">{fileError}</p>}
+                <p className="text-xs text-slate-400 mt-0.5">Máximo 100 MB. Si adjunta un documento, también se registrará en Facturas del cliente.</p>
+              </div>
+
               {formError && (
                 <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                   {formError}
@@ -477,7 +514,7 @@ export default function PagosIntangiblesComponent() {
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {submitting ? 'Guardando...' : 'Enviar'}
+                  {submitting ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </form>

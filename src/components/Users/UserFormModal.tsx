@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "../Styles/Modal";
-import { Role, User } from "./../../backend/types";
+import { Role, User, Project } from "./../../backend/types";
+
+const CLIENT_ROLE_ID = 8;
 
 type UserFormModalProps = {
   isOpen: boolean;
@@ -9,6 +11,7 @@ type UserFormModalProps = {
   initialData?: User;
   mode: "create" | "edit";
   roles: Role[];
+  projects: Project[];
 };
 
 export default function UserFormModal({
@@ -17,9 +20,23 @@ export default function UserFormModal({
   onSubmit,
   initialData,
   mode,
-  roles
+  roles,
+  projects
 }: UserFormModalProps) {
   const isEdit = mode === "edit";
+  const [selectedRoleId, setSelectedRoleId] = useState<number>(initialData?.rol?.id ?? 0);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<number[]>(initialData?.projectIds ?? []);
+
+  useEffect(() => {
+    setSelectedRoleId(initialData?.rol?.id ?? 0);
+    setSelectedProjectIds(initialData?.projectIds ?? []);
+  }, [initialData]);
+
+  const toggleProject = (projectId: number) => {
+    setSelectedProjectIds(prev =>
+      prev.includes(projectId) ? prev.filter(id => id !== projectId) : [...prev, projectId]
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,7 +58,8 @@ export default function UserFormModal({
       rol: {
         id: role.id,
         name: role.name
-      }
+      },
+      ...(roleId === CLIENT_ROLE_ID && { projectIds: selectedProjectIds })
     };
 
     onSubmit(user);
@@ -52,6 +70,7 @@ export default function UserFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? "Editar Usuario" : "Nuevo Usuario"}
+      zIndex={50}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
         {/* Nombre + Apellido */}
@@ -107,7 +126,8 @@ export default function UserFormModal({
             <select
               name="rolId"
               required
-              defaultValue={initialData?.rol?.id ?? ""}
+              value={selectedRoleId || ""}
+              onChange={e => setSelectedRoleId(Number(e.target.value))}
               className="
                 w-full p-2 border rounded-xl outline-none bg-white
                 focus:ring-2 focus:ring-blue-500
@@ -125,6 +145,40 @@ export default function UserFormModal({
             </select>
           </div>
         </div>
+
+        {/* Obras asociadas — solo visible para rol Cliente (id 8) */}
+        {selectedRoleId === CLIENT_ROLE_ID && (
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase">
+              Obras Asociadas
+            </label>
+            <div className="border rounded-xl p-3 max-h-48 overflow-y-auto space-y-1 bg-slate-50">
+              {projects.length === 0 ? (
+                <p className="text-sm text-slate-400">No hay obras disponibles</p>
+              ) : (
+                projects.map(project => (
+                  <label
+                    key={project.id}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-white rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedProjectIds.includes(project.id)}
+                      onChange={() => toggleProject(project.id)}
+                      className="w-4 h-4 accent-blue-600 rounded"
+                    />
+                    <span className="text-sm text-slate-700">{project.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            {selectedProjectIds.length > 0 && (
+              <p className="text-xs text-blue-600 font-medium">
+                {selectedProjectIds.length} obra{selectedProjectIds.length !== 1 ? "s" : ""} seleccionada{selectedProjectIds.length !== 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Submit */}
         <button
