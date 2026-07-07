@@ -538,7 +538,7 @@ export default function NioComponent() {
                                 <div className="grid gap-1 text-xs">
                                   <div className="bg-slate-50 p-2 rounded-lg">
                                     <p className="text-slate-400">Cantidad</p>
-                                    <p className="font-bold">{sup.quantity} {det.unit}</p>
+                                    <p className="font-bold">{sup.quantity} {det?.unit}</p>
                                   </div>
                                 </div>
                             </div>)})
