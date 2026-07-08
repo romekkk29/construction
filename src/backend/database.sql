@@ -37,16 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (name,last_name,role_id,email)
 VALUES
- ('Romeo','',1,'romegomez29@gmail.com'),
- ('Ricardo','Ozcoidi',4,'ricardo@constructuraapolosur.com'),
- ('Germán','Gatica',1,'ggatica@constructoraapolosur.com'),
- ('Mauro','Ponchietti',2,'mauroponchietti@constructoraapolosur.com'),
- ('Martina','Andia',3,'mandia@constructoraapolosur.com'),
- ('Brenda','Escudero',3,'bescudero@constructoraapolosur.com'),
- ('Javier','Dominguez',3,'jdominguez@constructoraspolosur.com'),
- ('Cecilia','Lombardi',5,'clombardi@constructoraapolosur.com'),
- ('Equipo','Compras',6,'compras@constructoraapolosur.com'),
- ('Edgardo','Fariello',2,'efariello@constructoraapolosur.com');
+ ('Romeo','',1,'romegomez29@gmail.com');
 
 -- Tabla de Proyectos (Actualizada)
 CREATE TABLE IF NOT EXISTS projects (
