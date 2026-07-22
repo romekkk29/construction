@@ -1154,18 +1154,17 @@ app.post('/api/gemini/extract-budget', asyncHandler(async (req, res) => {
   Analiza la información proporcionada (ya sea un PDF o datos de una planilla Excel) y extrae TODA la estructura de costos.
   
   REGLAS DE EXTRACCIÓN:
-  1. Identifica "accountNumber": Códigos de cuenta o índices (ej: 1.1, 01.A, etc).
-  2. Identifica "name": Nombre del rubro o cuenta principal.
-  3. Identifica "detail": Especificaciones técnicas o descripción del item.
-  4. Identifica "cost": El monto total presupuestado. Limpia símbolos de moneda y separadores de miles.
-  5. Identifica "incidence": Porcentaje de incidencia (%) de la cuenta. Si no está, calcúlalo como (costo_item / costo_total) * 100.
+  1. Identifica "name": Es el identificador de la cuenta. Puede ser un número (ej: 1, 1.1), un número con letras (ej: 01.A, 2B) o solo letras/texto corto (ej: A, ITEM). Es únicamente un código o etiqueta, NO una descripción.
+  2. Identifica "detail": Es el texto descriptivo o nombre del rubro/item asociado a la cuenta (ej: "Movimiento de suelos", "Estructura de hormigón"). Es siempre una descripción, nunca un código.
+  3. Identifica "cost": El monto total presupuestado. Limpia símbolos de moneda y separadores de miles.
+  4. Identifica "incidence": Porcentaje de incidencia (%) de la cuenta. Si no está, calcúlalo como (costo_item / costo_total) * 100.
   
   RESTRICCIONES:
   - Solo devuelve un JSON array. No incluyas explicaciones.
   - Asegúrate de no duplicar items si hay subtotales y totales. Prioriza los items de menor nivel.
   
   Devuelve exclusivamente un JSON array de objetos con este esquema:
-  [{"accountNumber": string, "name": string, "detail": string, "cost": number, "incidence": number}]`;
+  [{"name": string, "detail": string, "cost": number, "incidence": number}]`;
 
   const parts: any[] = [{ text: prompt }];
   if (file) parts.push({ inlineData: file });
@@ -1180,7 +1179,6 @@ app.post('/api/gemini/extract-budget', asyncHandler(async (req, res) => {
         items: {
           type: Type.OBJECT,
           properties: {
-            accountNumber: { type: Type.STRING },
             name: { type: Type.STRING },
             detail: { type: Type.STRING },
             cost: { type: Type.NUMBER },

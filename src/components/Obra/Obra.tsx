@@ -834,6 +834,8 @@ export default function ObraComponent() {
                                         return selectedProject.accounts?.filter(acc =>
                                             acc.name?.toLowerCase().includes(searchLower) ||
                                             acc.detail?.toLowerCase().includes(searchLower)
+                                        ).sort((a, b) =>
+                                            (a.name ?? '').localeCompare(b.name ?? '', undefined, { numeric: true, sensitivity: 'base' })
                                         ).map(acc => {
                                                             const incidence = (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
                                                             const isCreated = acc.isCreatedYet !== false;
