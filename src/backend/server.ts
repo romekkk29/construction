@@ -1235,7 +1235,7 @@ app.post('/api/gemini/extract-budget', asyncHandler(async (req, res) => {
   if (file) parts.push({ inlineData: file });
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.6-flash',
     contents: { parts },
     config: {
       responseMimeType: 'application/json',
@@ -1283,7 +1283,7 @@ app.post('/api/gemini/extract-supplies', asyncHandler(async (req, res) => {
   if (file) parts.push({ inlineData: file });
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.6-flash',
     contents: { parts },
     config: {
       responseMimeType: 'application/json',
