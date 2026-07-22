@@ -67,6 +67,7 @@ export default function ObraComponent() {
     
     const [users, setUsers] = useState<User[]>([]);
     const [loading,setLoading]= useState<Boolean>(false);
+    const [accountSearchTerm, setAccountSearchTerm] = useState("");
 
     const handleSelectedProject= async (project: Project) => {
     
@@ -803,6 +804,16 @@ export default function ObraComponent() {
 
                                     {/* Tabla de Cuentas */}
                                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-8 overflow-hidden">
+                                        {/* Buscador */}
+                                        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar por cuenta o nombre..."
+                                                value={accountSearchTerm}
+                                                onChange={(e) => setAccountSearchTerm(e.target.value)}
+                                                className="w-full sm:max-w-sm px-4 py-2 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all placeholder-slate-400"
+                                            />
+                                        </div>
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left min-w-[800px]">
                                                 <thead className="bg-slate-50 border-b">
@@ -819,7 +830,11 @@ export default function ObraComponent() {
                                                 <tbody className="divide-y">
                                                     {(() => {
                                                         const totalBudget = selectedProject.accounts?.reduce((sum, acc) => sum + acc.budgeted, 0) ?? 0;
-                                                        return selectedProject.accounts?.map(acc => {
+                                                        const searchLower = accountSearchTerm.toLowerCase();
+                                        return selectedProject.accounts?.filter(acc =>
+                                            acc.name?.toLowerCase().includes(searchLower) ||
+                                            acc.detail?.toLowerCase().includes(searchLower)
+                                        ).map(acc => {
                                                             const incidence = (totalBudget > 0 ? (acc.budgeted / totalBudget) * 100 : 0);
                                                             const isCreated = acc.isCreatedYet !== false;
 
