@@ -12,9 +12,50 @@ import cookieSession from 'cookie-session';
 import { userInfo } from 'os';
 import nodemailer from 'nodemailer';
 import { pool } from './db.js';
-
+import fs from 'fs';
+import multer from 'multer';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const baseUploadsDir = process.env.UPLOADS_DIR ?? path.join(__dirname, '../../uploads');
+const makeUploadDir = (sub: string) => {
+  const dir = path.join(baseUploadsDir, sub);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+};
+const makeUpload = (dir: string) => multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, dir),
+    filename: (_req, file, cb) => {
+      const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      cb(null, `${unique}${path.extname(file.originalname)}`);
+    }
+  }),
+  limits: { fileSize: 100 * 1024 * 1024 }
+});
+const clientPaymentsDir = makeUploadDir('client-payments');
+const advancesDir       = makeUploadDir('advances');
+const invoicesDir       = makeUploadDir('invoices');
+const uploadClientPayments = makeUpload(clientPaymentsDir);
+const uploadAdvances       = makeUpload(advancesDir);
+const uploadInvoices       = makeUpload(invoicesDir);
+
+const mapPaymentRow = (row: any) => ({
+  id: row.id,
+  projectId: row.project_id,
+  projectName: row.project_name,
+  clientUserIds: row.client_user_ids || [],
+  amount: parseFloat(row.amount),
+  paymentDate: row.payment_date instanceof Date
+    ? row.payment_date.toISOString().split('T')[0]
+    : String(row.payment_date ?? '').split('T')[0],
+  currency: row.currency,
+  detail: row.detail,
+  documentName: row.document_name,
+  documentOriginalName: row.document_original_name,
+  createdBy: row.created_by,
+  createdByName: row.created_by_name,
+  createdAt: row.created_at
+});
 
 const app = express();
 const PORT = 4001;
@@ -323,7 +364,23 @@ app.delete('/api/users/:id', asyncHandler(async (req, res) => {
 
   res.json({ message: 'Usuario deshabilitado con éxito', user: result });
 }));
+app.get('/api/users/:id/projects', asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const rows = await pgQuery('project_users', 'SELECT_PROJECT_USERS', { user_id: userId });
+  const projectIds = (rows as any[]).map((r: any) => r.project_id);
+  res.json(projectIds);
+}));
 
+app.put('/api/users/:id/projects', asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const { projectIds } = req.body;
+  await pool.query(`DELETE FROM project_users WHERE user_id = $1`, [userId]);
+  if (Array.isArray(projectIds) && projectIds.length > 0) {
+    const rows = projectIds.map((pid: number) => ({ project_id: pid, user_id: userId }));
+    await pgQuery('project_users', 'INSERT_MANY', rows);
+  }
+  res.json({ message: 'Proyectos actualizados' });
+}));
 app.get('/api/costaccounts', asyncHandler(async (req, res) => {
   // Capturamos el projectId de la URL (ej: ?projectId=10)
 const projectId = parseInt(req.query.projectId, 10);  
@@ -1263,9 +1320,9 @@ app.get('/api/intangible-payments', asyncHandler(async (_, res) => {
   res.json(result);
 }));
 
-app.post('/api/intangible-payments', asyncHandler(async (req, res) => {
+app.post('/api/intangible-payments', uploadInvoices.single('document'), asyncHandler(async (req, res) => {  
   const { descripcion, precio, obraImputarId, cuentaImputacionId } = req.body;
-
+const authUser = req.user as any;
   const created = await pgQuery('intangible_payments', 'INSERT', {
     description: descripcion,
     status: 'pendiente',
@@ -1273,7 +1330,17 @@ app.post('/api/intangible-payments', asyncHandler(async (req, res) => {
     project_id: obraImputarId,
     cost_account_id: cuentaImputacionId,
   });
-
+  if (req.file) {
+    const today = new Date().toISOString().split('T')[0];
+    await pgQuery('project_invoices', 'INSERT', {
+      project_id: parseInt(obraImputarId),
+      detail: descripcion?.trim() || null,
+      invoice_date: today,
+      document_name: req.file.filename,
+      document_original_name: req.file.originalname,
+      created_by: authUser?.id ?? null
+    });
+  }
   res.status(201).json({ id: created.id });
 }));
 
@@ -1319,11 +1386,195 @@ app.delete('/api/intangible-payments/:id', asyncHandler(async (req, res) => {
 
   res.json({ message: 'Pago eliminado con éxito' });
 }));
+/* ---------- API PAGOS CLIENTES ---------- */
+app.get('/api/client-payments', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  let result;
+  const baseQuery = `
+    SELECT cp.*, p.name AS project_name, cu.name AS created_by_name,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT pu.user_id), NULL) AS client_user_ids
+    FROM client_payments cp
+    JOIN projects p ON cp.project_id = p.id
+    LEFT JOIN users cu ON cp.created_by = cu.id
+    LEFT JOIN project_users pu ON cp.project_id = pu.project_id AND pu.is_enable = TRUE`;
+  if (authUser.role_id === 1) {
+    result = await pool.query(`${baseQuery} WHERE cp.is_enable = TRUE GROUP BY cp.id, p.name, cu.name ORDER BY cp.created_at DESC`);
+  } else if (authUser.role_id === 8) {
+    result = await pool.query(`${baseQuery} WHERE cp.is_enable = TRUE AND cp.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE) GROUP BY cp.id, p.name, cu.name ORDER BY cp.created_at DESC`, [authUser.id]);
+  } else { return res.status(403).json({ message: 'Sin acceso' }); }
+  res.json(result.rows.map(mapPaymentRow));
+}));
 
+app.get('/api/client-payments/documents/:filename', isAuthenticated, (req, res) => {
+  const filePath = path.join(clientPaymentsDir, req.params.filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ message: 'Documento no encontrado' });
+  }
+});
+
+app.post('/api/client-payments', isAuthenticated, uploadClientPayments.single('document'), asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede registrar pagos' });
+
+  const { projectId, amount, paymentDate, currency, detail } = req.body;
+
+  const created = await pgQuery('client_payments', 'INSERT', {
+    project_id: parseInt(projectId),
+    amount: parseFloat(amount),
+    payment_date: paymentDate,
+    currency,
+    detail: detail || null,
+    document_name: req.file?.filename ?? null,
+    document_original_name: req.file?.originalname ?? null,
+    created_by: authUser.id
+  });
+
+  const full = await pool.query(`
+    SELECT cp.*, p.name AS project_name, cu.name AS created_by_name,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT pu.user_id), NULL) AS client_user_ids
+    FROM client_payments cp JOIN projects p ON cp.project_id = p.id
+    LEFT JOIN users cu ON cp.created_by = cu.id
+    LEFT JOIN project_users pu ON cp.project_id = pu.project_id AND pu.is_enable = TRUE
+    WHERE cp.id = $1 GROUP BY cp.id, p.name, cu.name
+  `, [created.id]);
+
+  res.status(201).json(mapPaymentRow(full.rows[0]));
+}));
+
+/* ---------- API AVANCES DE OBRA ---------- */
+const mapAdvanceRow = (row: any) => ({
+  id: row.id,
+  projectId: row.project_id,
+  projectName: row.project_name,
+  clientUserIds: row.client_user_ids || [],
+  detail: row.detail,
+  advanceDate: row.advance_date instanceof Date
+    ? row.advance_date.toISOString().split('T')[0]
+    : String(row.advance_date ?? '').split('T')[0],
+  documentName: row.document_name,
+  documentOriginalName: row.document_original_name,
+  createdByName: row.created_by_name,
+  createdAt: row.created_at
+});
+
+app.get('/api/project-advances', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  let result;
+  const baseQuery = `
+    SELECT pa.*, p.name AS project_name, cu.name AS created_by_name,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT pu.user_id), NULL) AS client_user_ids
+    FROM project_advances pa
+    JOIN projects p ON pa.project_id = p.id
+    LEFT JOIN users cu ON pa.created_by = cu.id
+    LEFT JOIN project_users pu ON pa.project_id = pu.project_id AND pu.is_enable = TRUE`;
+  if (authUser.role_id === 1) {
+    result = await pool.query(`${baseQuery} WHERE pa.is_enable = TRUE GROUP BY pa.id, p.name, cu.name ORDER BY pa.created_at DESC`);
+  } else if (authUser.role_id === 8) {
+    result = await pool.query(`${baseQuery} WHERE pa.is_enable = TRUE AND pa.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE) GROUP BY pa.id, p.name, cu.name ORDER BY pa.created_at DESC`, [authUser.id]);
+  } else { return res.status(403).json({ message: 'Sin acceso' }); }
+  res.json(result.rows.map(mapAdvanceRow));
+}));
+
+app.get('/api/project-advances/documents/:filename', isAuthenticated, (req, res) => {
+  const filePath = path.join(advancesDir, req.params.filename);
+  if (fs.existsSync(filePath)) res.sendFile(filePath);
+  else res.status(404).json({ message: 'Documento no encontrado' });
+});
+
+app.post('/api/project-advances', isAuthenticated, uploadAdvances.single('document'), asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede registrar avances' });
+  const { projectId, detail, advanceDate } = req.body;
+  const created = await pgQuery('project_advances', 'INSERT', {
+    project_id: parseInt(projectId),
+    detail: detail || null, advance_date: advanceDate,
+    document_name: req.file?.filename ?? null,
+    document_original_name: req.file?.originalname ?? null,
+    created_by: authUser.id
+  });
+  const full = await pool.query(`
+    SELECT pa.*, p.name AS project_name, cu.name AS created_by_name,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT pu.user_id), NULL) AS client_user_ids
+    FROM project_advances pa JOIN projects p ON pa.project_id = p.id
+    LEFT JOIN users cu ON pa.created_by = cu.id
+    LEFT JOIN project_users pu ON pa.project_id = pu.project_id AND pu.is_enable = TRUE
+    WHERE pa.id = $1 GROUP BY pa.id, p.name, cu.name
+  `, [created.id]);
+  res.status(201).json(mapAdvanceRow(full.rows[0]));
+}));
+
+/* ---------- API FACTURAS ---------- */
+const mapInvoiceRow = (row: any) => ({
+  id: row.id,
+  projectId: row.project_id,
+  projectName: row.project_name,
+  clientUserIds: row.client_user_ids || [],
+  detail: row.detail,
+  invoiceDate: row.invoice_date instanceof Date
+    ? row.invoice_date.toISOString().split('T')[0]
+    : String(row.invoice_date ?? '').split('T')[0],
+  documentName: row.document_name,
+  documentOriginalName: row.document_original_name,
+  createdByName: row.created_by_name,
+  createdAt: row.created_at
+});
+
+app.get('/api/project-invoices', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  let result;
+  const baseQuery = `
+    SELECT pi.*, p.name AS project_name, cu.name AS created_by_name,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT pu.user_id), NULL) AS client_user_ids
+    FROM project_invoices pi
+    JOIN projects p ON pi.project_id = p.id
+    LEFT JOIN users cu ON pi.created_by = cu.id
+    LEFT JOIN project_users pu ON pi.project_id = pu.project_id AND pu.is_enable = TRUE`;
+  if (authUser.role_id === 1) {
+    result = await pool.query(`${baseQuery} WHERE pi.is_enable = TRUE GROUP BY pi.id, p.name, cu.name ORDER BY pi.created_at DESC`);
+  } else if (authUser.role_id === 8) {
+    result = await pool.query(`${baseQuery} WHERE pi.is_enable = TRUE AND pi.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE) GROUP BY pi.id, p.name, cu.name ORDER BY pi.created_at DESC`, [authUser.id]);
+  } else { return res.status(403).json({ message: 'Sin acceso' }); }
+  res.json(result.rows.map(mapInvoiceRow));
+}));
+
+app.get('/api/project-invoices/documents/:filename', isAuthenticated, (req, res) => {
+  const filePath = path.join(invoicesDir, req.params.filename);
+  if (fs.existsSync(filePath)) res.sendFile(filePath);
+  else res.status(404).json({ message: 'Documento no encontrado' });
+});
+
+app.post('/api/project-invoices', isAuthenticated, uploadInvoices.single('document'), asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede registrar facturas' });
+  const { projectId, detail, invoiceDate } = req.body;
+  const created = await pgQuery('project_invoices', 'INSERT', {
+    project_id: parseInt(projectId),
+    detail: detail || null, invoice_date: invoiceDate,
+    document_name: req.file?.filename ?? null,
+    document_original_name: req.file?.originalname ?? null,
+    created_by: authUser.id
+  });
+  const full = await pool.query(`
+    SELECT pi.*, p.name AS project_name, cu.name AS created_by_name,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT pu.user_id), NULL) AS client_user_ids
+    FROM project_invoices pi JOIN projects p ON pi.project_id = p.id
+    LEFT JOIN users cu ON pi.created_by = cu.id
+    LEFT JOIN project_users pu ON pi.project_id = pu.project_id AND pu.is_enable = TRUE
+    WHERE pi.id = $1 GROUP BY pi.id, p.name, cu.name
+  `, [created.id]);
+  res.status(201).json(mapInvoiceRow(full.rows[0]));
+}));
 /* ---------- ERROR HANDLER (SIEMPRE AL FINAL) ---------- */
 app.use((err: any, req: any, res: any, _next: any) => {
   console.error(err);
-
+  // Multer file size exceeded
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      message: 'El documento supera el límite de 100 MB. Optimícelo o contacte al administrador.'
+    });
+  }
   // Foreign key violation
   if (err.code === '23503') {
     return res.status(400).json({

@@ -43,6 +43,62 @@ export const apiClient = {
       return res.json();
     },
   },
+  clientPayments: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/client-payments`);
+      return res.json();
+    },
+    create: async (formData: FormData): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/client-payments`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+  },
+  projectAdvances: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/project-advances`);
+      return res.json();
+    },
+    create: async (formData: FormData): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/project-advances`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+  },
+  projectInvoices: {
+    list: async (): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/project-invoices`);
+      return res.json();
+    },
+    create: async (formData: FormData): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/project-invoices`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+  },
+  projectUsers: {
+    getByUser: async (userId: number): Promise<number[]> => {
+      const res = await fetch(`${API_BASE_URL}/users/${userId}/projects`);
+      return res.json();
+    },
+    update: async (userId: number, projectIds: number[]): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/users/${userId}/projects`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectIds }),
+      });
+      return res.json();
+    },
+  },
   roles:{
      list: async (): Promise<Role[]> => {
       const res = await fetch(`${API_BASE_URL}/roles`);
@@ -343,11 +399,10 @@ export const apiClient = {
       const res = await fetch(`${API_BASE_URL}/intangible-payments`);
       return res.json();
     },
-    create: async (p: { descripcion: string; precio: number; obraImputarId: number; cuentaImputacionId: number }): Promise<{ id: number }> => {
+    create: async (formData: FormData): Promise<{ id: number }> => {
       const res = await fetch(`${API_BASE_URL}/intangible-payments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(p),
+ body: formData,
       });
       if (!res.ok) throw await res.json();
       return res.json();
