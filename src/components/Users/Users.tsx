@@ -1,7 +1,7 @@
 import React, {useState,useEffect} from "react";
 
 import UserFormModal from "./UserFormModal";
-import { Role, User } from "@/src/backend/types";
+import { Role, User, Project } from "@/src/backend/types";
 import { apiClient } from './../../api';
 import { Plus, Edit, Trash2 } from "lucide-react";
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
@@ -12,10 +12,13 @@ export default function UsersComponent() {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [roles,setRoles] = useState<Role[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading,setLoading]= useState<Boolean>(false);
   const handleUpdateUser = async (user: User) => {
     const updated = await apiClient.users.update(user);
-
+    if (user.rol.id === 8) {
+      await apiClient.projectUsers.update(user.id, user.projectIds ?? []);
+    }
     setUsers(prev =>
       prev.map(p => (p.id === updated.id ? user : p))
     );
@@ -27,11 +30,23 @@ export default function UsersComponent() {
     try {
       const response = await apiClient.users.create(user);
       let newIdUser={...user,id:response.id}
+      if (user.rol.id === 8) {
+        await apiClient.projectUsers.update(response.id, user.projectIds ?? []);
+      }
       setUsers(prev => [...prev, newIdUser]);
       setIsUserModalOpen(false);
     } catch (err: any) {
       alert(err.message || 'Error al crear usuario');
     }
+  };
+  const handleEditUser = async (user: User) => {
+    let userToEdit = user;
+    if (user.rol.id === 8) {
+      const projectIds = await apiClient.projectUsers.getByUser(user.id);
+      userToEdit = { ...user, projectIds };
+    }
+    setEditingUser(userToEdit);
+    setIsUserModalOpen(true);
   };
 
   const handleDeleteUser = async (user: User) => {
@@ -51,12 +66,14 @@ export default function UsersComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [role,users] = await Promise.all([
+        const [role,users,projs] = await Promise.all([
           apiClient.roles.list(),
-          apiClient.users.list()
+          apiClient.users.list(),
+          apiClient.projects.list()
         ]);
         setRoles(role);
-        setUsers(users)
+        setUsers(users);
+        setProjects(projs.filter(p => p.isEnable !== false))
       } catch (error) {
         console.error("DB Connection Error:", error);
       }
@@ -78,6 +95,7 @@ export default function UsersComponent() {
         <UserFormModal
             isOpen={isUserModalOpen}
             roles={roles}
+            projects={projects}
             onClose={() => {
             setIsUserModalOpen(false);
             setEditingUser(null);
@@ -154,10 +172,7 @@ export default function UsersComponent() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center flex justify-center gap-4">
                       <button
-                        onClick={() => {
-                          setEditingUser(user);
-                          setIsUserModalOpen(true);
-                        }}
+                        onClick={() => handleEditUser(user)}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                       >
                         <Edit className="h-5 w-5" />
