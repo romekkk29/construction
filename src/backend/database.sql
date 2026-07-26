@@ -19,7 +19,8 @@ VALUES
  ('Gerente de Cómputo y presupuesto'),
  ('Gerente de Compras'),
  ('Área Compras'),
- ('Visualizadores');
+ ('Visualizadores'),
+   ('Cliente');
 
 -- Tabla de Usuarios (Usuarios)
 CREATE TABLE IF NOT EXISTS users (

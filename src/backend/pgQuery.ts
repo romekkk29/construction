@@ -480,7 +480,6 @@ export const pgQuery = async (
             c.detail,
             c.budgeted,
             c.spent,
-            c.spent_expected,
             c.is_enable
           FROM cost_accounts c
           WHERE c.project_id = $1 and c.is_enable = TRUE
@@ -500,7 +499,6 @@ export const pgQuery = async (
           c.detail,
           c.budgeted,
           c.spent,
-          c.spent_expected,
           c.is_enable
         FROM cost_accounts c
         WHERE c.is_enable = TRUE

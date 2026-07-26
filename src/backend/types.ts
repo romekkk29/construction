@@ -169,4 +169,4 @@ export interface ClientPayment {
   createdAt?: string;
 }
 
-export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas';
+export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas' | 'clientePresupuesto';
