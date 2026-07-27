@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "../Styles/Modal";
 import { Role, User, Project } from "./../../backend/types";
 
-const CLIENT_ROLE_ID = 12;
+const CLIENT_ROLE_ID = 8;
 
 type UserFormModalProps = {
   isOpen: boolean;
