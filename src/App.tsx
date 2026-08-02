@@ -29,7 +29,8 @@ import {
   CreditCard,
   Wallet,
   Building2,
-  Receipt
+  Receipt,
+  PieChart
 } from 'lucide-react';
 
 import UsersComponent from "./components/Users/Users"
@@ -115,6 +116,8 @@ export default function App() {
               <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => setActiveView('clientePagos')} />
               <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
               <SidebarItem icon={Receipt} label="Facturas o Remitos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
+             <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => setActiveView('clientePresupuesto')} />
+
             </>
           ) : (
             <>
