@@ -140,6 +140,8 @@ export default function App() {
                   <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => setActiveView('clientePagos')} />
                   <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
                   <SidebarItem icon={Receipt} label="Facturas o Remitos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
+                  <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => { setActiveView('clientePresupuesto'); setSidebarOpen(false); }} />
+
                 </>
               )}
             </>
@@ -182,6 +184,8 @@ export default function App() {
                       <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => { setActiveView('clientePagos'); setSidebarOpen(false); }} />
                       <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
                       <SidebarItem icon={Receipt} label="Facturas" active={activeView === 'clienteFacturas'} onClick={() => { setActiveView('clienteFacturas'); setSidebarOpen(false); }} />
+                     <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => { setActiveView('clientePresupuesto'); setSidebarOpen(false); }} />
+                    
                     </>
                   )}
                 </>
@@ -216,3 +220,4 @@ export default function App() {
     </div>
   );
 }
+Shift
