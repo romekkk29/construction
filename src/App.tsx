@@ -50,6 +50,7 @@ import PagosIntangiblesComponent from './components/PagosIntangibles/PagosIntang
 import ClientePagosComponent from './components/Cliente/ClientePagos';
 import ClienteAvancesComponent from './components/Cliente/ClienteAvances';
 import ClienteFacturasComponent from './components/Cliente/ClienteFacturas';
+import ClientePresupuestoComponent from './components/Cliente/ClientePresupuesto';
 
 
 // --- Main App ---
@@ -85,6 +86,7 @@ export default function App() {
   const renderClientePagos = () => <ClientePagosComponent />;
   const renderClienteAvances = () => <ClienteAvancesComponent />;
   const renderClienteFacturas = () => <ClienteFacturasComponent />;
+  const renderClientePresupuesto = () => <ClientePresupuestoComponent />;
 
   const isCliente = user?.role_id === 8;
   const isAdmin = user?.role_id === 1;
@@ -102,6 +104,7 @@ export default function App() {
       case 'clientePagos': return renderClientePagos();
       case 'clienteAvances': return renderClienteAvances();
       case 'clienteFacturas': return renderClienteFacturas();
+      case 'clientePresupuesto': return renderClientePresupuesto();
       default: return isCliente ? renderClientePagos() : renderNio();
     }
   };
