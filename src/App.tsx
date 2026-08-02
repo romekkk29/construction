@@ -30,7 +30,8 @@ import {
   Wallet,
   Building2,
   Receipt,
-  PieChart
+  PieChart,
+  BookOpen
 } from 'lucide-react';
 
 import UsersComponent from "./components/Users/Users"
@@ -51,6 +52,7 @@ import ClientePagosComponent from './components/Cliente/ClientePagos';
 import ClienteAvancesComponent from './components/Cliente/ClienteAvances';
 import ClienteFacturasComponent from './components/Cliente/ClienteFacturas';
 import ClientePresupuestoComponent from './components/Cliente/ClientePresupuesto';
+import LibroObraComponent from './components/LibroObra/LibroObra';
 
 
 // --- Main App ---
@@ -87,6 +89,7 @@ export default function App() {
   const renderClienteAvances = () => <ClienteAvancesComponent />;
   const renderClienteFacturas = () => <ClienteFacturasComponent />;
   const renderClientePresupuesto = () => <ClientePresupuestoComponent />;
+  const renderLibroObra = () => <LibroObraComponent />;
 
   const isCliente = user?.role_id === 8;
   const isAdmin = user?.role_id === 1;
@@ -105,6 +108,7 @@ export default function App() {
       case 'clienteAvances': return renderClienteAvances();
       case 'clienteFacturas': return renderClienteFacturas();
       case 'clientePresupuesto': return renderClientePresupuesto();
+      case 'libroObra': return renderLibroObra();
       default: return isCliente ? renderClientePagos() : renderNio();
     }
   };
@@ -116,9 +120,9 @@ export default function App() {
         <aside className="hidden md:flex w-72 flex-col border-r bg-white p-4 gap-2">
           {isCliente ? (
             <>
-              <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => setActiveView('clientePagos')} />
-              <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
-              <SidebarItem icon={Receipt} label="Facturas o Remitos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
+{/*               <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => setActiveView('clientePagos')} />
+ */}              <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
+              <SidebarItem icon={Receipt} label="Documentos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
               <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => setActiveView('clientePresupuesto')} />
             </>
           ) : (
@@ -132,6 +136,7 @@ export default function App() {
               <SidebarItem icon={Package} label="Logística y compras" active={activeView === 'supplies'} onClick={() => setActiveView('supplies')} />
               <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} />
               <SidebarItem icon={TrendingUp} label="Trazabilidad" active={activeView === 'traza'} onClick={() => setActiveView('traza')} />
+              <SidebarItem icon={BookOpen} label="Libro de Obra" active={activeView === 'libroObra'} onClick={() => setActiveView('libroObra')} />
               {user.role_id==1?        
               <SidebarItem icon={Users} label="Usuarios" active={activeView === 'users'} onClick={() => setActiveView('users')} />
               :null}
@@ -139,9 +144,9 @@ export default function App() {
                 <>
                   <div className="mt-2 pt-2 border-t border-slate-100" />
                   <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Portal Cliente</span>
-                  <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => setActiveView('clientePagos')} />
-                  <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
-                  <SidebarItem icon={Receipt} label="Facturas o Remitos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
+{/*                   <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => setActiveView('clientePagos')} />
+ */}                  <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
+                  <SidebarItem icon={Receipt} label="Documentos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
                   <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => setActiveView('clientePresupuesto')} />
                 </>
               )}
@@ -158,9 +163,9 @@ export default function App() {
               </div>
               {isCliente ? (
                 <>
-                  <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => { setActiveView('clientePagos'); setSidebarOpen(false); }} />
-                  <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
-                  <SidebarItem icon={Receipt} label="Facturas o Remitos" active={activeView === 'clienteFacturas'} onClick={() => { setActiveView('clienteFacturas'); setSidebarOpen(false); }} />
+{/*                   <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => { setActiveView('clientePagos'); setSidebarOpen(false); }} />
+ */}                  <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
+                  <SidebarItem icon={Receipt} label="Documentos" active={activeView === 'clienteFacturas'} onClick={() => { setActiveView('clienteFacturas'); setSidebarOpen(false); }} />
                   <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => { setActiveView('clientePresupuesto'); setSidebarOpen(false); }} />
                 </>
               ) : (
@@ -174,6 +179,7 @@ export default function App() {
                   <SidebarItem icon={Package} label="Insumos" active={activeView === 'supplies'} onClick={() => { setActiveView('supplies'); setSidebarOpen(false); }} />
                   <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeView === 'dashboard'} onClick={() => { setActiveView('dashboard'); setSidebarOpen(false); }} />
                   <SidebarItem icon={TrendingUp} label="Trazabilidad" active={activeView === 'traza'} onClick={() => { setActiveView('traza'); setSidebarOpen(false); }} />
+                  <SidebarItem icon={BookOpen} label="Libro de Obra" active={activeView === 'libroObra'} onClick={() => { setActiveView('libroObra'); setSidebarOpen(false); }} />
                   {user.role_id==1?    
                   <SidebarItem icon={Users} label="Usuarios" active={activeView === 'users'} onClick={() => { setActiveView('users'); setSidebarOpen(false); }} />  
                   :null}
@@ -181,8 +187,8 @@ export default function App() {
                     <>
                       <div className="mt-2 pt-2 border-t border-slate-100" />
                       <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Portal Cliente</span>
-                      <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => { setActiveView('clientePagos'); setSidebarOpen(false); }} />
-                      <SidebarItem icon={Building2} label="Avances de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
+{/*                       <SidebarItem icon={Wallet} label="Pagos Clientes" active={activeView === 'clientePagos'} onClick={() => { setActiveView('clientePagos'); setSidebarOpen(false); }} />
+ */}                      <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
                       <SidebarItem icon={Receipt} label="Facturas" active={activeView === 'clienteFacturas'} onClick={() => { setActiveView('clienteFacturas'); setSidebarOpen(false); }} />
                       <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => { setActiveView('clientePresupuesto'); setSidebarOpen(false); }} />
                     </>
@@ -214,6 +220,7 @@ export default function App() {
             <button onClick={() => setActiveView('projects')} className={`p-2 rounded-full ${activeView === 'projects' ? 'text-blue-600' : 'text-slate-400'}`}><Construction className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('dashboard')} className={`p-2 rounded-full ${activeView === 'dashboard' ? 'text-blue-600' : 'text-slate-400'}`}><LayoutDashboard className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('traza')} className={`p-2 rounded-full ${activeView === 'traza' ? 'text-blue-600' : 'text-slate-400'}`}><TrendingUp className="h-6 w-6" /></button>
+            <button onClick={() => setActiveView('libroObra')} className={`p-2 rounded-full ${activeView === 'libroObra' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen className="h-6 w-6" /></button>
           </>
         )}
       </nav>

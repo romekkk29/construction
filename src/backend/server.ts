@@ -35,9 +35,11 @@ const makeUpload = (dir: string) => multer({
 const clientPaymentsDir = makeUploadDir('client-payments');
 const advancesDir       = makeUploadDir('advances');
 const invoicesDir       = makeUploadDir('invoices');
+const constructionBookDir = makeUploadDir('construction-book');
 const uploadClientPayments = makeUpload(clientPaymentsDir);
 const uploadAdvances       = makeUpload(advancesDir);
 const uploadInvoices       = makeUpload(invoicesDir);
+const uploadConstructionBook = makeUpload(constructionBookDir);
 
 const mapPaymentRow = (row: any) => ({
   id: row.id,
@@ -1593,6 +1595,112 @@ app.use((err: any, req: any, res: any, _next: any) => {
     message: 'Error interno del servidor'
   });
 });
+
+/* ---------- API LIBRO DE OBRA ---------- */
+
+const mapConstructionBookRow = (row: any) => ({
+  id: row.id,
+  projectId: row.project_id,
+  projectName: row.project_name,
+  folder: row.folder,
+  originalName: row.original_name,
+  fileName: row.file_name,
+  mimeType: row.mime_type,
+  detail: row.detail,
+  createdBy: row.created_by,
+  createdByName: row.created_by_name,
+  createdAt: row.created_at,
+  isEnable: row.is_enable,
+});
+
+app.get('/api/construction-book', asyncHandler(async (req, res) => {
+  const projectId = parseInt(req.query.projectId as string, 10);
+  if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
+  const result = await pool.query(`
+    SELECT cb.*, p.name AS project_name, cu.name AS created_by_name
+    FROM construction_book cb
+    JOIN projects p ON cb.project_id = p.id
+    LEFT JOIN users cu ON cb.created_by = cu.id
+    WHERE cb.is_enable = TRUE AND cb.project_id = $1
+    ORDER BY cb.created_at DESC
+  `, [projectId]);
+  res.json(result.rows.map(mapConstructionBookRow));
+}));
+
+app.get('/api/construction-book/documents/:filename', isAuthenticated, (req, res) => {
+  const filePath = path.join(constructionBookDir, req.params.filename);
+  if (fs.existsSync(filePath)) res.sendFile(filePath);
+  else res.status(404).json({ message: 'Documento no encontrado' });
+});
+
+app.post('/api/construction-book', uploadConstructionBook.single('document'), asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  const { projectId, folder, detail } = req.body;
+  if (!projectId || !folder) return res.status(400).json({ message: 'projectId y folder son obligatorios' });
+  const created = await pgQuery('construction_book', 'INSERT', {
+    project_id: parseInt(projectId, 10),
+    folder,
+    detail: detail?.trim() || null,
+    original_name: req.file?.originalname ?? null,
+    file_name: req.file?.filename ?? null,
+    mime_type: req.file?.mimetype ?? null,
+    created_by: authUser?.id ?? null,
+  });
+  const full = await pool.query(`
+    SELECT cb.*, p.name AS project_name, cu.name AS created_by_name
+    FROM construction_book cb
+    JOIN projects p ON cb.project_id = p.id
+    LEFT JOIN users cu ON cb.created_by = cu.id
+    WHERE cb.id = $1
+  `, [created.id]);
+  res.status(201).json(mapConstructionBookRow(full.rows[0]));
+}));
+
+app.post('/api/construction-book/generate-note', asyncHandler(async (req, res) => {
+  const { orderId, documentIds, prompt } = req.body;
+  if (!orderId) return res.status(400).json({ message: 'orderId requerido' });
+  const ids = [Number(orderId), ...(Array.isArray(documentIds) ? documentIds : [])];
+  const result = await pool.query(
+    `SELECT id, file_name, original_name, folder, mime_type FROM construction_book WHERE id = ANY($1::int[]) AND is_enable = TRUE`,
+    [ids]
+  );
+  const orderFile = result.rows.find((r: any) => r.id === Number(orderId));
+  if (!orderFile) return res.status(404).json({ message: 'Orden de servicio no encontrada' });
+
+  const systemPrompt = `Eres un asistente experto en construcción y redacción de notas de pedido para obras públicas.
+A partir de la Orden de Servicio proporcionada y, si el usuario lo indica, de documentos de la Ley de Obras Públicas y/o Pliegos de la Obra, redacta una Nota de Pedido clara, profesional, en texto plano y lista para copiar y pegar en un documento.
+La respuesta debe ser SOLO el cuerpo de la nota de pedido, sin comentarios adicionales, sin encabezados como "Nota de Pedido" a menos que sea apropiado, y en formato limpio.
+El usuario se encargará de guardar el texto en un archivo manualmente.`;
+
+  const parts: any[] = [{ text: systemPrompt }];
+
+  const addFile = (row: any, label: string) => {
+    const filePath = path.join(constructionBookDir, row.file_name);
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath).toString('base64');
+      parts.push({ text: `--- ${label}: ${row.original_name} ---` });
+      parts.push({ inlineData: { data, mimeType: row.mime_type || 'application/octet-stream' } });
+    }
+  };
+
+  addFile(orderFile, 'Orden de Servicio');
+
+  result.rows
+    .filter((r: any) => r.id !== Number(orderId) && (r.folder === 'ley' || r.folder === 'pliegos'))
+    .forEach((r: any) => addFile(r, r.folder === 'ley' ? 'Ley de Obras Públicas' : 'Pliegos de la Obra'));
+
+  if (prompt?.trim()) {
+    parts.push({ text: `Instrucciones adicionales del usuario: ${prompt.trim()}` });
+  }
+
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3.6-flash',
+    contents: { parts },
+  });
+
+  res.json({ text: response.text || '' });
+}));
 
 /* ---------- FRONTEND ---------- */
 app.use(express.static(path.join(__dirname, '../../dist')));

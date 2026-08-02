@@ -169,4 +169,18 @@ export interface ClientPayment {
   createdAt?: string;
 }
 
-export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas' | 'clientePresupuesto';
+export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas' | 'clientePresupuesto' | 'libroObra';
+
+export type ConstructionBookFolder = 'ley' | 'pliegos' | 'orden' | 'nota';
+
+export interface ConstructionBookDocument {
+  id: number;
+  projectId: number;
+  projectName?: string;
+  folder: ConstructionBookFolder;
+  originalName: string;
+  fileName: string;
+  createdAt?: string;
+  createdBy?: number;
+  createdByName?: string;
+}

@@ -278,3 +278,19 @@ CREATE INDEX IF NOT EXISTS idx_project_invoices_client ON project_invoices(clien
 ALTER TABLE IF EXISTS client_payments ALTER COLUMN client_user_id DROP NOT NULL;
 ALTER TABLE IF EXISTS project_advances ALTER COLUMN client_user_id DROP NOT NULL;
 ALTER TABLE IF EXISTS project_invoices ALTER COLUMN client_user_id DROP NOT NULL;
+
+-- Tabla de Libro de Obra (documentos por carpeta)
+CREATE TABLE IF NOT EXISTS construction_book (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    folder TEXT NOT NULL,
+    detail TEXT,
+    original_name TEXT,
+    file_name TEXT,
+    mime_type TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_construction_book_project ON construction_book(project_id);
+CREATE INDEX IF NOT EXISTS idx_construction_book_folder ON construction_book(folder);

@@ -1,4 +1,4 @@
-import { Project, Supply, User, Role, CostAccount,Driver } from './backend/types.js';
+import { Project, Supply, User, Role, CostAccount, Driver, ConstructionBookDocument } from './backend/types.js';
 
 const API_BASE_URL = '/api';
 
@@ -458,4 +458,28 @@ export const apiClient = {
       });
       return res.json();
     },},
+  constructionBook: {
+    list: async (projectId: number): Promise<ConstructionBookDocument[]> => {
+      const res = await fetch(`${API_BASE_URL}/construction-book?projectId=${projectId}`);
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    create: async (formData: FormData): Promise<ConstructionBookDocument> => {
+      const res = await fetch(`${API_BASE_URL}/construction-book`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    generateNote: async (payload: { orderId: number; documentIds: number[]; prompt?: string }): Promise<{ text: string }> => {
+      const res = await fetch(`${API_BASE_URL}/construction-book/generate-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+  },
 };

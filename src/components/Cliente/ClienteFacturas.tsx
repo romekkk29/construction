@@ -84,13 +84,13 @@ export default function ClienteFacturasComponent() {
   return (
     <div>
       <div className="flex pb-6 justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Facturas o Remitos</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Documentos</h2>
         {isAdmin && (
           <button
             onClick={() => setIsFormOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200 transition-all"
           >
-            <Plus className="h-5 w-5" /> Nueva Factura
+            <Plus className="h-5 w-5" /> Nuevo Documento
           </button>
         )}
       </div>
@@ -175,7 +175,7 @@ export default function ClienteFacturasComponent() {
       )}
 
       {isAdmin && (
-        <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedProjectId(""); }} title="Registrar Factura" zIndex={50}>
+        <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedProjectId(""); }} title="Registrar Documento" zIndex={50}>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Obra</label>
@@ -232,7 +232,7 @@ export default function ClienteFacturasComponent() {
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {formLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar Factura
+              Guardar
             </button>
           </form>
         </Modal>

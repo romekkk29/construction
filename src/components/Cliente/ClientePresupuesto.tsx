@@ -94,7 +94,7 @@ export default function ClientePresupuestoComponent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-blue-600 p-6 rounded-2xl text-white shadow-lg shadow-blue-100">
-                <p className="text-blue-100 text-sm font-medium mb-1">Avance General</p>
+                <p className="text-blue-100 text-sm font-medium mb-1">Reporte General</p>
                 <p className={`text-4xl font-extrabold mb-3 ${percentage > 100 ? "text-red-200" : "text-white"}`}>
                   {percentage.toFixed(1)}%
                 </p>
@@ -141,7 +141,7 @@ export default function ClientePresupuestoComponent() {
                       <th className="px-6 py-4 text-sm font-semibold text-slate-600">Cuenta</th>
                       <th className="px-6 py-4 text-sm font-semibold text-slate-600">Detalle</th>
                       <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">% Incidencia</th>
-                      <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Avance</th>
+                      <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Reporte</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">

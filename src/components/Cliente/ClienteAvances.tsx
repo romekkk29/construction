@@ -84,7 +84,7 @@ export default function ClienteAvancesComponent() {
   return (
     <div>
       <div className="flex pb-6 justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Avances de Obra</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Reportes de Obra</h2>
         {isAdmin && (
           <button
             onClick={() => setIsFormOpen(true)}
@@ -175,7 +175,7 @@ export default function ClienteAvancesComponent() {
       )}
 
       {isAdmin && (
-        <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedProjectId(""); }} title="Registrar Avance de Obra" zIndex={50}>
+        <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedProjectId(""); }} title="Registrar Reporte de Obra" zIndex={50}>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Obra</label>
@@ -208,7 +208,7 @@ export default function ClienteAvancesComponent() {
               <textarea
                 name="detail"
                 rows={3}
-                placeholder="Descripción del avance..."
+                placeholder="Descripción del reporte..."
                 className="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
@@ -232,7 +232,7 @@ export default function ClienteAvancesComponent() {
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {formLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar Avance
+              Guardar Reporte
             </button>
           </form>
         </Modal>

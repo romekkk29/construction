@@ -536,9 +536,12 @@ export default function NioComponent() {
                             <div key={sup.id}>
                                 <p className="text-sm text-slate-600 font-medium mb-1">{det?.detail}</p>
                                 <div className="grid gap-1 text-xs">
-                                  <div className="bg-slate-50 p-2 rounded-lg">
+                                  <div className={`p-2 rounded-lg ${sup.price_individual < 0 ? 'bg-red-50 border border-red-200' : 'bg-slate-50'}`}>
                                     <p className="text-slate-400">Cantidad</p>
-                                    <p className="font-bold">{sup.quantity} {det?.unit}</p>
+                                    <p className={`font-bold ${sup.price_individual < 0 ? 'text-red-600' : ''}`}>{sup.quantity} {det?.unit}</p>
+                                    {sup.price_individual < 0 && (
+                                      <span className="inline-block mt-1 text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-600 px-1.5 py-0.5 rounded">↩ Devolución de Mercaderia</span>
+                                    )}
                                   </div>
                                 </div>
                             </div>)})
@@ -633,19 +636,24 @@ export default function NioComponent() {
                             return (
                               <div 
                                 key={item.id || index} 
-                                className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 items-center"
+                                className={`grid grid-cols-1 md:grid-cols-12 gap-4 p-4 rounded-2xl border items-center ${
+                                  item.price_individual < 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'
+                                }`}
                               >
                                 {/* Insumo */}
                                 <div className="md:col-span-6">
                                   <p className="text-[10px] md:hidden text-slate-400 font-bold uppercase mb-1">Insumo / Servicio</p>
                                   <p className="text-sm font-bold text-slate-700">{det?.detail + " ("+det?.code+")"}</p>
                                   <p className="text-sm font-bold text-slate-500">{item?.detail}</p>
+                                  {item.price_individual < 0 && (
+                                    <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-600 px-2 py-0.5 rounded-full">↩ Desimputación a cuenta de costo</span>
+                                  )}
                                 </div>
 
                                 {/* Cantidad */}
                                 <div className="md:col-span-2">
                                   <p className="text-[10px] md:hidden text-slate-400 font-bold uppercase mb-1">Cantidad</p>
-                                  <p className="text-base font-black text-slate-800">
+                                  <p className={`text-base font-black ${item.price_individual < 0 ? 'text-red-600' : 'text-slate-800'}`}>
                                     {item.quantity} <span className="text-xs font-medium text-slate-500">{det?.unit}</span>
                                   </p>
                                 </div>
@@ -692,12 +700,17 @@ export default function NioComponent() {
                                 return (
                                   <div 
                                     key={item.id || index} 
-                                    className="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white p-3 rounded-xl border border-slate-200 items-center hover:shadow-md transition-shadow"
+                                    className={`grid grid-cols-1 md:grid-cols-12 gap-2 p-3 rounded-xl border items-center hover:shadow-md transition-shadow ${
+                                      item.price_individual < 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'
+                                    }`}
                                   >
                                     {/* 1. Insumo */}
                                     <div className="md:col-span-2">
                                       <p className="text-xs font-bold text-slate-800 leading-tight truncate">{det?.detail}</p>
                                       <p className="text-[10px] text-slate-500 italic truncate">{item?.detail}</p>
+                                      {item.price_individual < 0 && (
+                                        <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">↩ Devolución de Mercaderia</span>
+                                      )}
                                     </div>
 
                                     {/* 2. Cantidad */}
@@ -705,14 +718,15 @@ export default function NioComponent() {
                                       {item.status === 2 ||  item.status === 8? (
                                         <input
                                           type="number"
-                                          min="0.001"
                                           step="any"
-                                          className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-400 outline-none transition-all text-center font-bold"
+                                          className={`w-full text-xs p-2 rounded-lg border focus:bg-white focus:ring-1 focus:ring-blue-400 outline-none transition-all text-center font-bold ${
+                                            item.price_individual < 0 ? 'border-red-300 bg-red-50 text-red-600' : 'border-slate-200 bg-slate-50'
+                                          }`}
                                           value={item.quantity ?? ''}
                                           onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value))}
                                         />
                                       ) : (
-                                        <p className="text-sm font-black text-slate-800">
+                                        <p className={`text-sm font-black ${item.price_individual < 0 ? 'text-red-600' : 'text-slate-800'}`}>
                                           {item.quantity} <span className="text-[10px] text-slate-500 font-normal">{det?.unit}</span>
                                         </p>
                                       )}
