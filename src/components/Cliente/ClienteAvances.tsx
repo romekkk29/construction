@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, FileDown, Loader2 } from "lucide-react";
+import { Plus, FileDown, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "../Login/ProtectedRoute";
 import { apiClient } from "../../api";
 import { ProjectAdvance, Project } from "../../backend/types";
@@ -62,6 +62,16 @@ export default function ClienteAvancesComponent() {
     if (isAdmin && filterClient && !(r.clientUserIds || []).includes(Number(filterClient))) return false;
     return true;
   });
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("¿Está seguro de que desea eliminar este avance?")) return;
+    try {
+      await apiClient.projectAdvances.delete(id);
+      setRecords((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar el avance");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -134,6 +144,7 @@ export default function ClienteAvancesComponent() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Obra</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Documento</th>
+                  {isAdmin && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -159,11 +170,22 @@ export default function ClienteAvancesComponent() {
                         <span className="text-slate-300 text-xs">—</span>
                       )}
                     </td>
+                    {isAdmin && (
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleDelete(r.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-10 text-center text-gray-400 text-sm">
+                    <td colSpan={isAdmin ? 5 : 4} className="px-4 py-10 text-center text-gray-400 text-sm">
                       No hay avances registrados
                     </td>
                   </tr>

@@ -70,6 +70,13 @@ export const apiClient = {
       if (!res.ok) throw await res.json();
       return res.json();
     },
+    delete: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/project-advances/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
   },
   projectInvoices: {
     list: async (): Promise<any[]> => {
@@ -80,6 +87,13 @@ export const apiClient = {
       const res = await fetch(`${API_BASE_URL}/project-invoices`, {
         method: 'POST',
         body: formData,
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    delete: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/project-invoices/${id}`, {
+        method: 'DELETE',
       });
       if (!res.ok) throw await res.json();
       return res.json();
@@ -477,6 +491,13 @@ export const apiClient = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    delete: async (id: number): Promise<{ message: string }> => {
+      const res = await fetch(`${API_BASE_URL}/construction-book/${id}`, {
+        method: 'DELETE',
       });
       if (!res.ok) throw await res.json();
       return res.json();

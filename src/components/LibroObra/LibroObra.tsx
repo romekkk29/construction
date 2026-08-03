@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../Login/ProtectedRoute";
 import { apiClient } from "../../api";
 import { Project, ConstructionBookDocument, ConstructionBookFolder } from "../../backend/types";
-import { BookOpen, Folder, Upload, FileText, Plus, X, Loader2, BrainCircuit, Wand2, AlertCircle, CheckSquare, Square, FileDown } from "lucide-react";
+import { BookOpen, Folder, Upload, FileText, Plus, X, Loader2, BrainCircuit, Wand2, AlertCircle, CheckSquare, Square, FileDown, Trash2 } from "lucide-react";
 import Modal from "../Styles/Modal";
 
 const FOLDERS: { id: ConstructionBookFolder; name: string; description: string }[] = [
@@ -111,6 +111,16 @@ export default function LibroObraComponent() {
       alert(err.message || "Error al subir el documento");
     } finally {
       setUploadLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("¿Está seguro de que desea eliminar este documento?")) return;
+    try {
+      await apiClient.constructionBook.delete(id);
+      setDocuments((prev) => prev.filter((d) => d.id !== id));
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar el documento");
     }
   };
 
@@ -281,6 +291,13 @@ export default function LibroObraComponent() {
                                 <Wand2 className="h-4 w-4" />
                               </button>
                             )}
+                            <button
+                              onClick={() => handleDelete(d.id)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
