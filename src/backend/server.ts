@@ -1507,6 +1507,15 @@ app.post('/api/project-advances', isAuthenticated, uploadAdvances.single('docume
   res.status(201).json(mapAdvanceRow(full.rows[0]));
 }));
 
+app.delete('/api/project-advances/:id', isAuthenticated, asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede eliminar avances' });
+  const id = parseInt(req.params.id, 10);
+  const result = await pgQuery('project_advances', 'UPDATE', { id, is_enable: false });
+  if (!result) return res.status(404).json({ message: 'Avance no encontrado' });
+  res.json({ message: 'Avance eliminado correctamente' });
+}));
+
 /* ---------- API FACTURAS ---------- */
 const mapInvoiceRow = (row: any) => ({
   id: row.id,
@@ -1567,6 +1576,14 @@ app.post('/api/project-invoices', isAuthenticated, uploadInvoices.single('docume
     WHERE pi.id = $1 GROUP BY pi.id, p.name, cu.name
   `, [created.id]);
   res.status(201).json(mapInvoiceRow(full.rows[0]));
+}));
+app.delete('/api/project-invoices/:id', isAuthenticated, asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede eliminar facturas' });
+  const id = parseInt(req.params.id, 10);
+  const result = await pgQuery('project_invoices', 'UPDATE', { id, is_enable: false });
+  if (!result) return res.status(404).json({ message: 'Factura no encontrada' });
+  res.json({ message: 'Factura eliminada correctamente' });
 }));
 /* ---------- ERROR HANDLER (SIEMPRE AL FINAL) ---------- */
 app.use((err: any, req: any, res: any, _next: any) => {
@@ -1700,6 +1717,15 @@ El usuario se encargará de guardar el texto en un archivo manualmente.`;
   });
 
   res.json({ text: response.text || '' });
+}));
+
+app.delete('/api/construction-book/:id', isAuthenticated, asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede eliminar documentos' });
+  const id = parseInt(req.params.id, 10);
+  const result = await pgQuery('construction_book', 'UPDATE', { id, is_enable: false });
+  if (!result) return res.status(404).json({ message: 'Documento no encontrado' });
+  res.json({ message: 'Documento eliminado correctamente' });
 }));
 
 /* ---------- FRONTEND ---------- */
