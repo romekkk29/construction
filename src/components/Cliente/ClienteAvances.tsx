@@ -8,6 +8,7 @@ import Modal from "../Styles/Modal";
 export default function ClienteAvancesComponent() {
   const { user } = useAuth();
   const isAdmin = user?.role_id === 1;
+  const canCreate = user?.role_id === 1 || user?.role_id === 2 || user?.role_id === 3;
 
   const [records, setRecords] = useState<ProjectAdvance[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -38,12 +39,24 @@ export default function ClienteAvancesComponent() {
     const load = async () => {
       setLoading(true);
       try {
-        const [data, projectsData] = await Promise.all([
+        const [data, projectsData, assignedIds] = await Promise.all([
           apiClient.projectAdvances.list(),
           apiClient.projects.list(),
+          isAdmin || user?.role_id === 2 || user?.role_id === 3 ? Promise.resolve(null) : apiClient.projectUsers.getByUser(user.id),
         ]);
         setRecords(data);
-        setProjects(projectsData.filter((p) => p.isEnable !== false));
+        const enabled = projectsData.filter((p) => p.isEnable !== false);
+        if (isAdmin) {
+          setProjects(enabled);
+        } else if (user?.role_id === 2) {
+          setProjects(enabled.filter((p) => p.generalManager === user.id));
+        } else if (user?.role_id === 3) {
+          setProjects(enabled.filter((p) => p.projectManager === user.id));
+        } else if (assignedIds !== null) {
+          setProjects(enabled.filter((p) => (assignedIds as number[]).includes(p.id)));
+        } else {
+          setProjects([]);
+        }
         if (isAdmin) {
           const usersData = await apiClient.users.list();
           setClientUsers(usersData.filter((u: any) => u.rol.id === 8));
@@ -95,7 +108,7 @@ export default function ClienteAvancesComponent() {
     <div>
       <div className="flex pb-6 justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Reportes de Obra</h2>
-        {isAdmin && (
+        {canCreate && (
           <button
             onClick={() => setIsFormOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200 transition-all"
@@ -196,7 +209,7 @@ export default function ClienteAvancesComponent() {
         </div>
       )}
 
-      {isAdmin && (
+      {canCreate && (
         <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedProjectId(""); }} title="Registrar Reporte de Obra" zIndex={50}>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">

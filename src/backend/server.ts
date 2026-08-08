@@ -1401,9 +1401,9 @@ app.get('/api/client-payments', asyncHandler(async (req, res) => {
     LEFT JOIN project_users pu ON cp.project_id = pu.project_id AND pu.is_enable = TRUE`;
   if (authUser.role_id === 1) {
     result = await pool.query(`${baseQuery} WHERE cp.is_enable = TRUE GROUP BY cp.id, p.name, cu.name ORDER BY cp.created_at DESC`);
-  } else if (authUser.role_id === 8) {
-    result = await pool.query(`${baseQuery} WHERE cp.is_enable = TRUE AND cp.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE) GROUP BY cp.id, p.name, cu.name ORDER BY cp.created_at DESC`, [authUser.id]);
-  } else { return res.status(403).json({ message: 'Sin acceso' }); }
+  } else {
+    result = await pool.query(`${baseQuery} WHERE cp.is_enable = TRUE AND (p.general_manager_id = $1 OR p.project_manager_id = $1 OR cp.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE)) GROUP BY cp.id, p.name, cu.name ORDER BY cp.created_at DESC`, [authUser.id]);
+  }
   res.json(result.rows.map(mapPaymentRow));
 }));
 
@@ -1418,7 +1418,7 @@ app.get('/api/client-payments/documents/:filename', isAuthenticated, (req, res) 
 
 app.post('/api/client-payments', isAuthenticated, uploadClientPayments.single('document'), asyncHandler(async (req, res) => {
   const authUser = req.user as any;
-  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede registrar pagos' });
+  if (![1, 2, 3].includes(authUser.role_id)) return res.status(403).json({ message: 'Solo administrador, gerente o jefe de obra puede registrar pagos' });
 
   const { projectId, amount, paymentDate, currency, detail } = req.body;
 
@@ -1473,9 +1473,9 @@ app.get('/api/project-advances', asyncHandler(async (req, res) => {
     LEFT JOIN project_users pu ON pa.project_id = pu.project_id AND pu.is_enable = TRUE`;
   if (authUser.role_id === 1) {
     result = await pool.query(`${baseQuery} WHERE pa.is_enable = TRUE GROUP BY pa.id, p.name, cu.name ORDER BY pa.created_at DESC`);
-  } else if (authUser.role_id === 8) {
-    result = await pool.query(`${baseQuery} WHERE pa.is_enable = TRUE AND pa.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE) GROUP BY pa.id, p.name, cu.name ORDER BY pa.created_at DESC`, [authUser.id]);
-  } else { return res.status(403).json({ message: 'Sin acceso' }); }
+  } else {
+    result = await pool.query(`${baseQuery} WHERE pa.is_enable = TRUE AND (p.general_manager_id = $1 OR p.project_manager_id = $1 OR pa.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE)) GROUP BY pa.id, p.name, cu.name ORDER BY pa.created_at DESC`, [authUser.id]);
+  }
   res.json(result.rows.map(mapAdvanceRow));
 }));
 
@@ -1487,7 +1487,7 @@ app.get('/api/project-advances/documents/:filename', isAuthenticated, (req, res)
 
 app.post('/api/project-advances', isAuthenticated, uploadAdvances.single('document'), asyncHandler(async (req, res) => {
   const authUser = req.user as any;
-  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede registrar avances' });
+  if (![1, 2, 3].includes(authUser.role_id)) return res.status(403).json({ message: 'Solo administrador, gerente o jefe de obra puede registrar avances' });
   const { projectId, detail, advanceDate } = req.body;
   const created = await pgQuery('project_advances', 'INSERT', {
     project_id: parseInt(projectId),
@@ -1544,9 +1544,9 @@ app.get('/api/project-invoices', asyncHandler(async (req, res) => {
     LEFT JOIN project_users pu ON pi.project_id = pu.project_id AND pu.is_enable = TRUE`;
   if (authUser.role_id === 1) {
     result = await pool.query(`${baseQuery} WHERE pi.is_enable = TRUE GROUP BY pi.id, p.name, cu.name ORDER BY pi.created_at DESC`);
-  } else if (authUser.role_id === 8) {
-    result = await pool.query(`${baseQuery} WHERE pi.is_enable = TRUE AND pi.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE) GROUP BY pi.id, p.name, cu.name ORDER BY pi.created_at DESC`, [authUser.id]);
-  } else { return res.status(403).json({ message: 'Sin acceso' }); }
+  } else {
+    result = await pool.query(`${baseQuery} WHERE pi.is_enable = TRUE AND (p.general_manager_id = $1 OR p.project_manager_id = $1 OR pi.project_id IN (SELECT project_id FROM project_users WHERE user_id = $1 AND is_enable = TRUE)) GROUP BY pi.id, p.name, cu.name ORDER BY pi.created_at DESC`, [authUser.id]);
+  }
   res.json(result.rows.map(mapInvoiceRow));
 }));
 
@@ -1558,7 +1558,7 @@ app.get('/api/project-invoices/documents/:filename', isAuthenticated, (req, res)
 
 app.post('/api/project-invoices', isAuthenticated, uploadInvoices.single('document'), asyncHandler(async (req, res) => {
   const authUser = req.user as any;
-  if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede registrar facturas' });
+  if (![1, 2, 3].includes(authUser.role_id)) return res.status(403).json({ message: 'Solo administrador, gerente o jefe de obra puede registrar facturas' });
   const { projectId, detail, invoiceDate } = req.body;
   const created = await pgQuery('project_invoices', 'INSERT', {
     project_id: parseInt(projectId),

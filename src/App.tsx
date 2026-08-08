@@ -92,7 +92,6 @@ export default function App() {
   const renderLibroObra = () => <LibroObraComponent />;
 
   const isCliente = user?.role_id === 8;
-  const isAdmin = user?.role_id === 1;
 
   const renderCurrentView = () => {
     switch (activeView) {
@@ -140,7 +139,7 @@ export default function App() {
               {user.role_id==1?        
               <SidebarItem icon={Users} label="Usuarios" active={activeView === 'users'} onClick={() => setActiveView('users')} />
               :null}
-              {isAdmin && (
+              {!isCliente && (
                 <>
                   <div className="mt-2 pt-2 border-t border-slate-100" />
                   <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Portal Cliente</span>
@@ -183,7 +182,7 @@ export default function App() {
                   {user.role_id==1?    
                   <SidebarItem icon={Users} label="Usuarios" active={activeView === 'users'} onClick={() => { setActiveView('users'); setSidebarOpen(false); }} />  
                   :null}
-                  {isAdmin && (
+                  {!isCliente && (
                     <>
                       <div className="mt-2 pt-2 border-t border-slate-100" />
                       <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Portal Cliente</span>

@@ -706,8 +706,8 @@ export default function NioComponent() {
                                   >
                                     {/* 1. Insumo */}
                                     <div className="md:col-span-2">
-                                      <p className="text-xs font-bold text-slate-800 leading-tight truncate">{det?.detail}</p>
-                                      <p className="text-[10px] text-slate-500 italic truncate">{item?.detail}</p>
+                                      <p className="text-xs font-bold text-slate-800 leading-tight break-words">{det?.detail}</p>
+                                      <p className="text-[10px] text-slate-500 italic break-words">{item?.detail}</p>
                                       {item.price_individual < 0 && (
                                         <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">↩ Devolución de Mercaderia</span>
                                       )}
@@ -865,8 +865,8 @@ export default function NioComponent() {
                                   >
                                     {/* 1. Insumo */}
                                     <div className="md:col-span-2">
-                                      <p className="text-xs font-bold text-slate-800 leading-tight truncate">{det?.detail}</p>
-                                      <p className="text-[10px] text-slate-500 italic truncate">{item?.detail}</p>
+                                      <p className="text-xs font-bold text-slate-800 leading-tight break-words">{det?.detail}</p>
+                                      <p className="text-[10px] text-slate-500 italic break-words">{item?.detail}</p>
                                     </div>
 
                                     {/* 2. Cantidad */}
@@ -1055,8 +1055,8 @@ export default function NioComponent() {
                                   >
                                     {/* 1. Insumo */}
                                     <div className="md:col-span-2">
-                                      <p className="text-xs font-bold text-slate-800 leading-tight truncate">{det?.detail}</p>
-                                      <p className="text-[10px] text-slate-500 italic truncate">{item?.detail}</p>
+                                      <p className="text-xs font-bold text-slate-800 leading-tight break-words">{det?.detail}</p>
+                                      <p className="text-[10px] text-slate-500 italic break-words">{item?.detail}</p>
                                     </div>
 
                                     {/* 2. Cantidad */}

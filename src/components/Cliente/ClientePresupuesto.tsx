@@ -20,13 +20,19 @@ export default function ClientePresupuestoComponent() {
       try {
         const [allProjects, assignedIds] = await Promise.all([
           apiClient.projects.list(),
-          isAdmin ? Promise.resolve(null) : apiClient.projectUsers.getByUser(user.id),
+          isAdmin || user?.role_id === 2 || user?.role_id === 3 ? Promise.resolve(null) : apiClient.projectUsers.getByUser(user.id),
         ]);
         const enabled = allProjects.filter((p) => p.isEnable !== false);
-        if (isAdmin || assignedIds === null) {
+        if (isAdmin) {
           setProjects(enabled);
-        } else {
+        } else if (user?.role_id === 2) {
+          setProjects(enabled.filter((p) => p.generalManager === user.id));
+        } else if (user?.role_id === 3) {
+          setProjects(enabled.filter((p) => p.projectManager === user.id));
+        } else if (assignedIds !== null) {
           setProjects(enabled.filter((p) => (assignedIds as number[]).includes(p.id)));
+        } else {
+          setProjects([]);
         }
       } catch (e) {
         console.error(e);
