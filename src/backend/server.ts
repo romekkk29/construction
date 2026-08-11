@@ -905,7 +905,7 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
   }
   if (ql !== 0) {
     const allUsers = await pgQuery('users', 'SELECT');
-    const allEmails = (allUsers as any[]).map((u: any) => u.email).filter(Boolean).join(',');
+    const allEmails = (allUsers as any[]).filter((u: any) => u.role_id !== 8).map((u: any) => u.email).filter(Boolean).join(',');
     const mailOptions = {
       from: '"Sistema LogiCost" <informationapp2626@gmail.com>',
       to: allEmails,
@@ -1028,7 +1028,7 @@ app.delete('/api/nios_supplier/:id', asyncHandler(async (req, res) => {
     const project  = await pgQuery('projects', 'SELECT', { id: nio?.project_id });
     const supply   = await pgQuery('supplies', 'SELECT', { id: nioSupply.supplies_id });
     const allUsers = await pgQuery('users',    'SELECT');
-    const allEmails = (allUsers as any[]).map((u: any) => u.email).filter(Boolean).join(',');
+    const allEmails = (allUsers as any[]).filter((u: any) => u.role_id !== 8).map((u: any) => u.email).filter(Boolean).join(',');
 
     const mailOptions = {
       from: '"Sistema LogiCost" <informationapp2626@gmail.com>',
