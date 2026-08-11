@@ -297,7 +297,7 @@ export default function AvanceCertificadoComponent() {
     }
   };
 
-  // Build recharts data — calendar-based so Real certs always appear regardless of config alignment
+  // Build recharts data — calendar-based, cumulative for both series
   const buildChartData = (): { name: string; Proyectado?: number; Real?: number }[] => {
     if (!selectedProject) return [];
     const config = projectedConfigs[selectedProject.id];
@@ -319,6 +319,9 @@ export default function AvanceCertificadoComponent() {
 
     const sortedAbs = Array.from(absSet).sort((a, b) => a - b);
 
+    let cumProyectado = 0;
+    let cumReal = 0;
+
     return sortedAbs.map((abs) => {
       const { year, month } = fromAbsMonth(abs);
       const point: { name: string; Proyectado?: number; Real?: number } = {
@@ -328,12 +331,16 @@ export default function AvanceCertificadoComponent() {
       if (config) {
         const idx = abs - absMonth(config.startYear, config.startMonth);
         if (idx >= 0 && idx < config.durationMonths) {
-          point.Proyectado = config.percentages[idx] ?? 0;
+          cumProyectado += config.percentages[idx] ?? 0;
+          point.Proyectado = Math.min(cumProyectado, 100);
         }
       }
 
       const cert = approvedCerts.find((c) => c.year === year && c.month === month);
-      if (cert) point.Real = cert.percentage;
+      if (cert) {
+        cumReal += cert.percentage;
+        point.Real = Math.min(cumReal, 100);
+      }
 
       return point;
     });
