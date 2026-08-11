@@ -127,6 +127,7 @@ export default function App() {
  */}              <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
               <SidebarItem icon={Receipt} label="Documentos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
               <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => setActiveView('clientePresupuesto')} />
+              <SidebarItem icon={BarChart2} label="Avance Certificado" active={activeView === 'avanceCertificado'} onClick={() => setActiveView('avanceCertificado')} />
             </>
           ) : (
             <>
@@ -173,6 +174,7 @@ export default function App() {
  */}                  <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
                   <SidebarItem icon={Receipt} label="Documentos" active={activeView === 'clienteFacturas'} onClick={() => { setActiveView('clienteFacturas'); setSidebarOpen(false); }} />
                   <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => { setActiveView('clientePresupuesto'); setSidebarOpen(false); }} />
+                  <SidebarItem icon={BarChart2} label="Avance Certificado" active={activeView === 'avanceCertificado'} onClick={() => { setActiveView('avanceCertificado'); setSidebarOpen(false); }} />
                 </>
               ) : (
                 <>
@@ -218,10 +220,10 @@ export default function App() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t px-6 py-3 flex justify-between items-center z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         {isCliente ? (
           <>
-            <button onClick={() => setActiveView('clientePagos')} className={`p-2 rounded-full ${activeView === 'clientePagos' ? 'text-blue-600' : 'text-slate-400'}`}><Wallet className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('clienteAvances')} className={`p-2 rounded-full ${activeView === 'clienteAvances' ? 'text-blue-600' : 'text-slate-400'}`}><Building2 className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('clienteFacturas')} className={`p-2 rounded-full ${activeView === 'clienteFacturas' ? 'text-blue-600' : 'text-slate-400'}`}><Receipt className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('clientePresupuesto')} className={`p-2 rounded-full ${activeView === 'clientePresupuesto' ? 'text-blue-600' : 'text-slate-400'}`}><PieChart className="h-6 w-6" /></button>
+            <button onClick={() => setActiveView('avanceCertificado')} className={`p-2 rounded-full ${activeView === 'avanceCertificado' ? 'text-blue-600' : 'text-slate-400'}`}><BarChart2 className="h-6 w-6" /></button>
           </>
         ) : (
           <>

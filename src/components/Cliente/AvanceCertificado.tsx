@@ -77,6 +77,7 @@ export default function AvanceCertificadoComponent() {
   const isAdmin = user?.role_id === 1;
   const isGerente = user?.role_id === 2;
   const isJefe = user?.role_id === 3;
+  const isCliente = user?.role_id === 8;
   const canManageProjected = isAdmin || isGerente;
   const canAddCertificate = isAdmin || isGerente || isJefe;
   const canApprove = isAdmin || isGerente;
@@ -156,6 +157,9 @@ export default function AvanceCertificadoComponent() {
           setProjects(enabled.filter((p: Project) => p.generalManager === user.id));
         } else if (isJefe) {
           setProjects(enabled.filter((p: Project) => p.projectManager === user.id));
+        } else if (isCliente) {
+          const projectIds: number[] = await apiClient.projectUsers.getByUser(user.id);
+          setProjects(enabled.filter((p: Project) => projectIds.includes(p.id)));
         } else {
           setProjects([]);
         }
