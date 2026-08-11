@@ -31,7 +31,8 @@ import {
   Building2,
   Receipt,
   PieChart,
-  BookOpen
+  BookOpen,
+  BarChart2
 } from 'lucide-react';
 
 import UsersComponent from "./components/Users/Users"
@@ -53,6 +54,7 @@ import ClienteAvancesComponent from './components/Cliente/ClienteAvances';
 import ClienteFacturasComponent from './components/Cliente/ClienteFacturas';
 import ClientePresupuestoComponent from './components/Cliente/ClientePresupuesto';
 import LibroObraComponent from './components/LibroObra/LibroObra';
+import AvanceCertificadoComponent from './components/Cliente/AvanceCertificado';
 
 
 // --- Main App ---
@@ -90,6 +92,7 @@ export default function App() {
   const renderClienteFacturas = () => <ClienteFacturasComponent />;
   const renderClientePresupuesto = () => <ClientePresupuestoComponent />;
   const renderLibroObra = () => <LibroObraComponent />;
+  const renderAvanceCertificado = () => <AvanceCertificadoComponent />;
 
   const isCliente = user?.role_id === 8;
 
@@ -108,6 +111,7 @@ export default function App() {
       case 'clienteFacturas': return renderClienteFacturas();
       case 'clientePresupuesto': return renderClientePresupuesto();
       case 'libroObra': return renderLibroObra();
+      case 'avanceCertificado': return renderAvanceCertificado();
       default: return isCliente ? renderClientePagos() : renderNio();
     }
   };
@@ -147,6 +151,9 @@ export default function App() {
  */}                  <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => setActiveView('clienteAvances')} />
                   <SidebarItem icon={Receipt} label="Documentos" active={activeView === 'clienteFacturas'} onClick={() => setActiveView('clienteFacturas')} />
                   <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => setActiveView('clientePresupuesto')} />
+                  {(user.role_id === 1 || user.role_id === 2 || user.role_id === 3) && (
+                    <SidebarItem icon={BarChart2} label="Avance Certificado" active={activeView === 'avanceCertificado'} onClick={() => setActiveView('avanceCertificado')} />
+                  )}
                 </>
               )}
             </>
@@ -155,7 +162,7 @@ export default function App() {
 
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)}>
-            <div className="w-72 h-full bg-white p-4 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+            <div className="w-72 h-full bg-white p-4 flex flex-col gap-2 overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6">
                 <span className="font-bold text-xl">LogiCostApp</span>
                 <button onClick={() => setSidebarOpen(false)}><X /></button>
@@ -190,6 +197,9 @@ export default function App() {
  */}                      <SidebarItem icon={Building2} label="Reportes de Obra" active={activeView === 'clienteAvances'} onClick={() => { setActiveView('clienteAvances'); setSidebarOpen(false); }} />
                       <SidebarItem icon={Receipt} label="Facturas" active={activeView === 'clienteFacturas'} onClick={() => { setActiveView('clienteFacturas'); setSidebarOpen(false); }} />
                       <SidebarItem icon={PieChart} label="Avance del Presupuesto" active={activeView === 'clientePresupuesto'} onClick={() => { setActiveView('clientePresupuesto'); setSidebarOpen(false); }} />
+                      {(user.role_id === 1 || user.role_id === 2 || user.role_id === 3) && (
+                        <SidebarItem icon={BarChart2} label="Avance Certificado" active={activeView === 'avanceCertificado'} onClick={() => { setActiveView('avanceCertificado'); setSidebarOpen(false); }} />
+                      )}
                     </>
                   )}
                 </>
@@ -220,6 +230,9 @@ export default function App() {
             <button onClick={() => setActiveView('dashboard')} className={`p-2 rounded-full ${activeView === 'dashboard' ? 'text-blue-600' : 'text-slate-400'}`}><LayoutDashboard className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('traza')} className={`p-2 rounded-full ${activeView === 'traza' ? 'text-blue-600' : 'text-slate-400'}`}><TrendingUp className="h-6 w-6" /></button>
             <button onClick={() => setActiveView('libroObra')} className={`p-2 rounded-full ${activeView === 'libroObra' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen className="h-6 w-6" /></button>
+            {(user.role_id === 1 || user.role_id === 2 || user.role_id === 3) && (
+              <button onClick={() => setActiveView('avanceCertificado')} className={`p-2 rounded-full ${activeView === 'avanceCertificado' ? 'text-blue-600' : 'text-slate-400'}`}><BarChart2 className="h-6 w-6" /></button>
+            )}
           </>
         )}
       </nav>

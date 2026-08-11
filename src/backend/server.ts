@@ -1728,6 +1728,178 @@ app.delete('/api/construction-book/:id', isAuthenticated, asyncHandler(async (re
   res.json({ message: 'Documento eliminado correctamente' });
 }));
 
+/* ---------- API AVANCE CERTIFICADO ---------- */
+
+const mapCertRow = (row: any) => ({
+  id: row.id,
+  projectId: row.project_id,
+  month: row.month,
+  year: row.year,
+  percentage: parseFloat(row.percentage),
+  status: row.status,
+  createdBy: row.created_by,
+  createdByName: row.created_by_name,
+  approvedBy: row.approved_by,
+  approvedByName: row.approved_by_name,
+  approvedAt: row.approved_at,
+  createdAt: row.created_at,
+  isEnable: row.is_enable,
+});
+
+app.get('/api/projected-config', asyncHandler(async (req, res) => {
+  const projectId = parseInt(req.query.projectId as string, 10);
+  if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
+  const cfgResult = await pool.query(
+    `SELECT * FROM projected_config WHERE project_id = $1`, [projectId]
+  );
+  if (cfgResult.rows.length === 0) return res.json(null);
+  const cfg = cfgResult.rows[0];
+  const mResult = await pool.query(
+    `SELECT percentage FROM projected_months
+     WHERE projected_config_id = $1 AND month_index <= $2
+     ORDER BY month_index`,
+    [cfg.id, cfg.duration_months]
+  );
+  res.json({
+    id: cfg.id,
+    projectId: cfg.project_id,
+    durationMonths: cfg.duration_months,
+    startMonth: cfg.start_month,
+    startYear: cfg.start_year,
+    createdBy: cfg.created_by,
+    updatedBy: cfg.updated_by,
+    percentages: mResult.rows.map((r: any) => parseFloat(r.percentage)),
+  });
+}));
+
+app.put('/api/projected-config/:projectId', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  const projectId = parseInt(req.params.projectId, 10);
+  const { durationMonths, startMonth, startYear, percentages } = req.body;
+  if (!durationMonths || durationMonths < 1)
+    return res.status(400).json({ message: 'durationMonths inválido' });
+  if (!startMonth || startMonth < 1 || startMonth > 12)
+    return res.status(400).json({ message: 'startMonth inválido' });
+  if (!startYear)
+    return res.status(400).json({ message: 'startYear requerido' });
+
+  const existing = await pool.query(
+    `SELECT id FROM projected_config WHERE project_id = $1`, [projectId]
+  );
+  let configId: number;
+  if (existing.rows.length === 0) {
+    const ins = await pool.query(`
+      INSERT INTO projected_config (project_id, duration_months, start_month, start_year, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $5) RETURNING id
+    `, [projectId, durationMonths, startMonth, startYear, authUser.id]);
+    configId = ins.rows[0].id;
+  } else {
+    configId = existing.rows[0].id;
+    await pool.query(`
+      UPDATE projected_config
+      SET duration_months = $1, start_month = $2, start_year = $3, updated_by = $4, updated_at = NOW()
+      WHERE id = $5
+    `, [durationMonths, startMonth, startYear, authUser.id, configId]);
+  }
+
+  const pcts: number[] = Array.isArray(percentages) ? percentages : [];
+  for (let i = 0; i < durationMonths; i++) {
+    await pool.query(`
+      INSERT INTO projected_months (projected_config_id, month_index, percentage, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $4)
+      ON CONFLICT (projected_config_id, month_index)
+      DO UPDATE SET percentage = EXCLUDED.percentage, updated_by = EXCLUDED.updated_by, updated_at = NOW()
+    `, [configId, i + 1, pcts[i] ?? 0, authUser.id]);
+  }
+
+  const mResult = await pool.query(`
+    SELECT percentage FROM projected_months
+    WHERE projected_config_id = $1 AND month_index <= $2
+    ORDER BY month_index
+  `, [configId, durationMonths]);
+
+  res.json({
+    id: configId,
+    projectId,
+    durationMonths,
+    startMonth,
+    startYear,
+    createdBy: authUser.id,
+    updatedBy: authUser.id,
+    percentages: mResult.rows.map((r: any) => parseFloat(r.percentage)),
+  });
+}));
+
+app.get('/api/certificates', asyncHandler(async (req, res) => {
+  const projectId = parseInt(req.query.projectId as string, 10);
+  if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
+  const result = await pool.query(`
+    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name
+    FROM certificates c
+    LEFT JOIN users u ON c.created_by = u.id
+    LEFT JOIN users ua ON c.approved_by = ua.id
+    WHERE c.project_id = $1 AND c.is_enable = TRUE
+    ORDER BY c.year DESC, c.month DESC
+  `, [projectId]);
+  res.json(result.rows.map(mapCertRow));
+}));
+
+app.post('/api/certificates', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  const { projectId, month, year, percentage } = req.body;
+  if (!projectId || !month || !year || percentage === undefined)
+    return res.status(400).json({ message: 'projectId, month, year y percentage son obligatorios' });
+  const ins = await pool.query(`
+    INSERT INTO certificates (project_id, month, year, percentage, status, created_by)
+    VALUES ($1, $2, $3, $4, 'pending', $5) RETURNING id
+  `, [projectId, month, year, percentage, authUser.id]);
+  const full = await pool.query(`
+    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name
+    FROM certificates c
+    LEFT JOIN users u ON c.created_by = u.id
+    LEFT JOIN users ua ON c.approved_by = ua.id
+    WHERE c.id = $1
+  `, [ins.rows[0].id]);
+  res.status(201).json(mapCertRow(full.rows[0]));
+}));
+
+app.put('/api/certificates/:id', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  const id = parseInt(req.params.id, 10);
+  const { status, percentage } = req.body;
+  const existing = await pool.query(
+    `SELECT id FROM certificates WHERE id = $1 AND is_enable = TRUE`, [id]
+  );
+  if (existing.rows.length === 0)
+    return res.status(404).json({ message: 'Certificado no encontrado' });
+
+  const sets: string[] = ['updated_at = NOW()'];
+  const vals: any[] = [];
+  let p = 1;
+  if (status !== undefined) {
+    sets.push(`status = $${p++}`); vals.push(status);
+    if (status === 'approved') {
+      sets.push(`approved_by = $${p++}`); vals.push(authUser.id);
+      sets.push(`approved_at = NOW()`);
+    }
+  }
+  if (percentage !== undefined) { sets.push(`percentage = $${p++}`); vals.push(percentage); }
+  vals.push(id);
+
+  const upd = await pool.query(
+    `UPDATE certificates SET ${sets.join(', ')} WHERE id = $${p} RETURNING id`,
+    vals
+  );
+  const full = await pool.query(`
+    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name
+    FROM certificates c
+    LEFT JOIN users u ON c.created_by = u.id
+    LEFT JOIN users ua ON c.approved_by = ua.id
+    WHERE c.id = $1
+  `, [upd.rows[0].id]);
+  res.json(mapCertRow(full.rows[0]));
+}));
+
 /* ---------- FRONTEND ---------- */
 app.use(express.static(path.join(__dirname, '../../dist')));
 

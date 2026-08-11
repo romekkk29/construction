@@ -293,4 +293,56 @@ CREATE TABLE IF NOT EXISTS construction_book (
     is_enable BOOLEAN DEFAULT TRUE
 );
 CREATE INDEX IF NOT EXISTS idx_construction_book_project ON construction_book(project_id);
+
+-- =============================================
+-- Avance de Obra con Certificados
+-- =============================================
+
+-- Configuración proyectada por proyecto (una por proyecto)
+CREATE TABLE IF NOT EXISTS projected_config (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    duration_months INTEGER NOT NULL DEFAULT 1,
+    start_month INTEGER NOT NULL DEFAULT 1 CHECK (start_month BETWEEN 1 AND 12),
+    start_year INTEGER NOT NULL,
+    created_by INTEGER REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_projected_config_project UNIQUE (project_id)
+);
+
+-- Registros mensuales del proyectado (1 fila por mes, month_index 1..N)
+CREATE TABLE IF NOT EXISTS projected_months (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    projected_config_id INTEGER NOT NULL REFERENCES projected_config(id),
+    month_index INTEGER NOT NULL CHECK (month_index >= 1),
+    percentage NUMERIC(5, 2) NOT NULL DEFAULT 0 CHECK (percentage BETWEEN 0 AND 100),
+    created_by INTEGER REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_projected_month UNIQUE (projected_config_id, month_index)
+);
+
+-- Certificados de avance real (N por proyecto)
+CREATE TABLE IF NOT EXISTS certificates (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+    year INTEGER NOT NULL,
+    percentage NUMERIC(5, 2) NOT NULL CHECK (percentage BETWEEN 0 AND 100),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_by INTEGER REFERENCES users(id),
+    approved_by INTEGER REFERENCES users(id),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_enable BOOLEAN DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_projected_config_project ON projected_config(project_id);
+CREATE INDEX IF NOT EXISTS idx_projected_months_config ON projected_months(projected_config_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_project ON certificates(project_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_status ON certificates(status);
 CREATE INDEX IF NOT EXISTS idx_construction_book_folder ON construction_book(folder);

@@ -503,4 +503,45 @@ export const apiClient = {
       return res.json();
     },
   },
+  projectedConfig: {
+    get: async (projectId: number): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/projected-config?projectId=${projectId}`);
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    upsert: async (projectId: number, data: { durationMonths: number; startMonth: number; startYear: number; percentages: number[] }): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/projected-config/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+  },
+  certificates: {
+    list: async (projectId: number): Promise<any[]> => {
+      const res = await fetch(`${API_BASE_URL}/certificates?projectId=${projectId}`);
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    create: async (data: { projectId: number; month: number; year: number; percentage: number }): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/certificates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+    update: async (id: number, data: { status?: string; percentage?: number }): Promise<any> => {
+      const res = await fetch(`${API_BASE_URL}/certificates/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
+  },
 };
