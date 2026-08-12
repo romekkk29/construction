@@ -169,7 +169,7 @@ export interface ClientPayment {
   createdAt?: string;
 }
 
-export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas' | 'clientePresupuesto' | 'libroObra' | 'avanceCertificado';
+export type ViewType = 'dashboard' | 'projects' | 'supplies' | 'stock' | 'nio' | 'traceability' | 'pagosIntangibles' | 'nioDefect' | 'nioHistory' | 'traza' | 'users' | 'clientePagos' | 'clienteAvances' | 'clienteFacturas' | 'clientePresupuesto' | 'libroObra' | 'avanceCertificado';
 
 export type ConstructionBookFolder = 'ley' | 'pliegos' | 'orden' | 'nota';
 

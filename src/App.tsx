@@ -28,6 +28,7 @@ import {
   Users,
   CreditCard,
   Wallet,
+  History,
   Building2,
   Receipt,
   PieChart,
@@ -41,6 +42,7 @@ import ObraComponent from './components/Obra/Obra';
 import SupliesComponent from './components/InsumoServicio/Insumos';
 import NioComponent from './components/NIO/Nio'
 import NioDefectComponent from './components/NIO/NioDefect';
+import NioHistoryComponent from './components/NIO/NioHistory';
 import Header from './components/Styles/Header';
 import SidebarItem from './components/Styles/SideBarItem';
 import { useAuth } from './components/Login/ProtectedRoute';
@@ -84,6 +86,9 @@ export default function App() {
   const renderDefect = () => (
     <NioDefectComponent></NioDefectComponent>
   )
+  const renderNioHistory = () => (
+    <NioHistoryComponent></NioHistoryComponent>
+  )
   const renderPagosIntangibles = () => (
     <PagosIntangiblesComponent />
   )
@@ -100,6 +105,7 @@ export default function App() {
     switch (activeView) {
       case 'dashboard': return renderDashboard();
       case 'nioDefect': return renderDefect();
+      case 'nioHistory': return renderNioHistory();
       case 'projects': return renderProjects();
       case 'supplies': return renderSupplies();
       case 'users': return renderUsers();
@@ -133,6 +139,7 @@ export default function App() {
             <>
               <SidebarItem icon={ClipboardList} label="Pizarra NIO" active={activeView === 'nio'} onClick={() => setActiveView('nio')} />
               <SidebarItem icon={AlertCircle} label="NIO Defectuosa" active={activeView === 'nioDefect'} onClick={() => { setActiveView('nioDefect') }} />
+              <SidebarItem icon={History} label="Historial NIOs" active={activeView === 'nioHistory'} onClick={() => setActiveView('nioHistory')} />
               <SidebarItem icon={Construction} label="Obras y Presupuestos" active={activeView === 'projects'} onClick={() => setActiveView('projects')} />
               {user.role_id !== 2 && user.role_id !== 3 &&
                 <SidebarItem icon={CreditCard} label="Pagos de Intangibles" active={activeView === 'pagosIntangibles'} onClick={() => setActiveView('pagosIntangibles')} />
@@ -180,6 +187,7 @@ export default function App() {
                 <>
                   <SidebarItem icon={ClipboardList} label="NIO Board" active={activeView === 'nio'} onClick={() => { setActiveView('nio'); setSidebarOpen(false); }} />
                   <SidebarItem icon={AlertCircle} label="NIO Defectuosa" active={activeView === 'nioDefect'} onClick={() => { setActiveView('nioDefect'); setSidebarOpen(false); }} />
+                  <SidebarItem icon={History} label="Historial NIOs" active={activeView === 'nioHistory'} onClick={() => { setActiveView('nioHistory'); setSidebarOpen(false); }} />
                   <SidebarItem icon={Construction} label="Obras" active={activeView === 'projects'} onClick={() => { setActiveView('projects'); setSidebarOpen(false); }} />
                   {user.role_id !== 2 && user.role_id !== 3 &&
                     <SidebarItem icon={CreditCard} label="Pagos de Intangibles" active={activeView === 'pagosIntangibles'} onClick={() => { setActiveView('pagosIntangibles'); setSidebarOpen(false); }} />

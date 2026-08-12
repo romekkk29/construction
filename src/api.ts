@@ -376,6 +376,17 @@ export const apiClient = {
       const res = await fetch(`${API_BASE_URL}/nios_defect_cost/${p.id}`);
       return res.json();
     },
+    listHistory: async (p: { projectId?: number; search?: string; status?: string; limit?: number; offset?: number }): Promise<{ data: any[]; total: number }> => {
+      const params = new URLSearchParams();
+      if (p.projectId) params.set('projectId', String(p.projectId));
+      if (p.search) params.set('search', p.search);
+      if (p.status) params.set('status', p.status);
+      params.set('limit', String(p.limit ?? 10));
+      params.set('offset', String(p.offset ?? 0));
+      const res = await fetch(`${API_BASE_URL}/nios_history?${params.toString()}`);
+      if (!res.ok) throw await res.json();
+      return res.json();
+    },
   },
   supplies: {
     list: async (): Promise<Supply[]> => {

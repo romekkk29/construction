@@ -1,6 +1,6 @@
 import { query } from './db.js';
 
-type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT_NIO_DEFECT_COST' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL' | 'SELECT_INTANGIBLE_PAYMENTS' | 'SELECT_INFLA' | 'SELECT_PROJECT_USERS';
+type Action =  'SELECT_DASHBOARD' | 'SELECT_NIO_DEFECT' | 'SELECT_NIO_DEFECT_COST' | 'SELECT' | 'SELECT_NIOS_FOURTH'| 'SELECT_NIOS_THIRD' | 'SELECT_NIOS' | 'SELECT_NIOS_SECOND' | 'SELECT_NIOS_FIRST' | 'SELECT_NIOS_COMPLETED' | 'SELECT_NIOS_HISTORY' | 'INSERT' | 'INSERT_MANY' | 'UPDATE' | 'UPDATE_COUNT' | 'UPDATE_MANY' | 'DELETE' | 'SELECT_USERS' | 'SELECT_COST_ACCOUNT' | 'SELECT_BY_EMAIL' | 'SELECT_INTANGIBLE_PAYMENTS' | 'SELECT_INFLA' | 'SELECT_PROJECT_USERS';
 
 export const pgQuery = async (
   table: string,
@@ -261,6 +261,79 @@ export const pgQuery = async (
                 n.to_transit_at, n.completed_at,nsup.id,ns.id,nd.id
       `;
       return await query(sql);
+    }
+    case 'SELECT_NIOS_HISTORY': {
+      const projectId = data?.projectId ?? null;
+      const userId = data?.userId ?? null;
+      const roleId = data?.roleId ?? null;
+      const limit = data?.limit ?? 10;
+      const offset = data?.offset ?? 0;
+
+      const sql = `
+        WITH base AS (
+          SELECT
+            n.id AS nio_id,
+            p.name AS project_name,
+            n.project_id,
+            s.detail AS supply,
+            s.unit,
+            ns.id AS supply_id,
+            ns.quantity,
+            ca.name AS account_name,
+            ca.detail AS account_detail,
+            nsell.oc_number,
+            nsell.supplier,
+            nsell.price_individual,
+            nsell.price_total,
+            d.name AS driver_name,
+            COALESCE(ndr.quantity_less, 0) AS quantity_less,
+            ns.status AS supply_status,
+            n.creation_date,
+            n.to_procurement_at,
+            n.to_logistics_at,
+            n.to_transit_at,
+            n.completed_at,
+            (SELECT MAX(created_date) FROM nios_defect WHERE nios_supplies_id = ns.id AND is_enable = TRUE) AS defect_date,
+            CASE
+              WHEN EXISTS (SELECT 1 FROM nios_defect ndf WHERE ndf.nios_supplies_id = ns.id AND ndf.is_enable = TRUE) THEN 'defectuosa'
+              WHEN ns.status IN (1, 9) THEN 'solicitud'
+              WHEN ns.status IN (2, 8) THEN 'compras'
+              WHEN ns.status = 3 THEN 'logistica'
+              WHEN ns.status = 4 THEN 'en transito'
+              WHEN ns.status = 5 THEN 'completa'
+              ELSE 'solicitud'
+            END AS estado
+          FROM nios_supplies ns
+          INNER JOIN nios n ON ns.nios_id = n.id
+          INNER JOIN projects p ON n.project_id = p.id
+          LEFT JOIN supplies s ON ns.supplies_id = s.id
+          LEFT JOIN cost_accounts ca ON ns.account_id = ca.id
+          LEFT JOIN nios_sells nsell ON nsell.nios_supplies_id = ns.id AND nsell.is_enable = TRUE
+          LEFT JOIN nios_driver ndr ON ndr.nios_sells_id = nsell.id AND ndr.is_enable = TRUE
+          LEFT JOIN drivers d ON ndr.driver_id = d.id
+          WHERE ns.is_enable = TRUE
+            AND n.is_enable = TRUE
+            AND p.is_enable = TRUE
+            AND ($1::integer IS NULL OR n.project_id = $1)
+            AND (
+              $2::integer = 1
+              OR $2::integer NOT IN (2, 3)
+              OR p.project_manager_id = $3
+              OR p.general_manager_id = $3
+              OR p.id IN (SELECT project_id FROM project_users WHERE user_id = $3 AND is_enable = TRUE)
+            )
+            AND ($4::text IS NULL OR $4::text = '' OR s.detail ILIKE '%' || $4::text || '%' OR n.id::text LIKE '%' || $4::text || '%')
+        ),
+        counted AS (SELECT COUNT(*) AS total FROM base)
+        SELECT c.total, b.*
+        FROM base b
+        CROSS JOIN counted c
+        WHERE ($5::text IS NULL OR $5::text = '' OR b.estado = $5::text)
+        ORDER BY b.nio_id DESC, b.supply_id DESC
+        LIMIT $6 OFFSET $7
+      `;
+      const rows = await query(sql, [projectId, roleId, userId, data?.search ?? null, data?.status ?? null, limit, offset]);
+      return rows;
     }
     case 'INSERT': {
       const keys = Object.keys(data);

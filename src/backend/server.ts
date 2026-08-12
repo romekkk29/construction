@@ -952,6 +952,57 @@ app.get('/api/nios', asyncHandler(async (_, res) => {
   res.json(nios);
 
 }));
+app.get('/api/nios_history', asyncHandler(async (req, res) => {
+  const authUser = req.user as any;
+  if (!authUser || authUser.role_id === 8) {
+    return res.status(403).json({ message: 'Sin permisos' });
+  }
+
+  const projectId = req.query.projectId ? parseInt(req.query.projectId, 10) : null;
+  const limit = Number(req.query.limit) || 10;
+  const offset = Number(req.query.offset) || 0;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : null;
+  const status = typeof req.query.status === 'string' ? req.query.status.trim().toLowerCase() : null;
+
+  const rows = await pgQuery('nios_supplies', 'SELECT_NIOS_HISTORY', {
+    projectId,
+    userId: authUser.id,
+    roleId: authUser.role_id,
+    search,
+    status,
+    limit,
+    offset
+  });
+
+  const total = rows.length > 0 ? parseInt(rows[0].total, 10) : 0;
+  const data = rows.map((row: any) => ({
+    nioId: row.nio_id,
+    projectId: row.project_id,
+    projectName: row.project_name,
+    supply: row.supply,
+    unit: row.unit,
+    supplyId: row.supply_id,
+    quantity: parseFloat(row.quantity),
+    accountName: row.account_name,
+    accountDetail: row.account_detail,
+    ocNumber: row.oc_number || '',
+    supplier: row.supplier || '',
+    priceIndividual: row.price_individual ? parseFloat(row.price_individual) : 0,
+    priceTotal: row.price_total ? parseFloat(row.price_total) : 0,
+    driverName: row.driver_name || '',
+    quantityLess: parseFloat(row.quantity_less || 0),
+    supplyStatus: row.supply_status,
+    estado: row.estado,
+    creationDate: row.creation_date,
+    toProcurementAt: row.to_procurement_at,
+    toLogisticsAt: row.to_logistics_at,
+    toTransitAt: row.to_transit_at,
+    completedAt: row.completed_at,
+    defectDate: row.defect_date
+  }));
+
+  res.json({ data, total });
+}));
 app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
   const rows = await pgQuery('nios_supplies', 'SELECT_NIOS_SECOND');
   const nios_supplier = rows.map((row: any) => ({
