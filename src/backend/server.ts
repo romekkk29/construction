@@ -80,7 +80,7 @@ if (!process.env.SESSION_SECRET || !process.env.GOOGLE_CLIENT_SECRET || !process
 }
 
 /* ---------- MIDDLEWARES ---------- */
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true // Permitir que viajen las cookies
