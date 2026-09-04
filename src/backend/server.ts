@@ -24,7 +24,7 @@ const makeUploadDir = (sub: string) => {
 };
 const makeUpload = (dir: string) => multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, dir),
+    destination: (_req, _file, cb: (error: Error | null, destination: string) => void) => cb(null, dir),
     filename: (_req, file, cb) => {
       const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
       cb(null, `${unique}${path.extname(file.originalname)}`);
@@ -192,12 +192,40 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 // Aplicarlo a todas las rutas que empiecen con /api
 app.use('/api', isAuthenticated);
 
+/* ---------- API PUBLICA - ENVIO DE EMAIL ---------- */
+// Endpoint público (sin autenticación). Acepta "to" (string o array) y "body" (HTML).
+// El "from" siempre es el email configurado en EMAIL_SENT.
+app.post('/public/send-email', cors(), asyncHandler(async (req: any, res: any) => {
+  const { to, subject, body } = req.body;
+
+  if (!to || !body) {
+    return res.status(400).json({ message: 'Los campos "to" y "body" son obligatorios' });
+  }
+
+  // Normalizar "to": puede ser un string o un array de strings
+  const toList: string[] = Array.isArray(to) ? to : [to];
+
+  if (toList.length === 0 || toList.some((email: any) => typeof email !== 'string' || !email.trim())) {
+    return res.status(400).json({ message: 'El campo "to" debe contener al menos un email válido' });
+  }
+
+  const mailOptions = {
+    from: `"Sistema LogiCost" <${process.env.EMAIL_SENT}>`,
+    to: toList.join(','),
+    subject: subject || 'Mensaje desde LogiCost',
+    html: body
+  };
+
+  await transporter.sendMail(mailOptions);
+  res.json({ message: 'Email enviado con éxito', recipients: toList });
+}));
+
 // En tu archivo del servidor backend
 app.get('/api/me', isAuthenticated, (req, res) => {
   res.json(req.user); // Si isAuthenticated pasa, enviamos los datos del usuario
 });
 /* ---------- API PROJECTS ---------- */
-app.get('/api/projects', asyncHandler(async (_, res) => {
+app.get('/api/projects', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('projects', 'SELECT');
   const projects = rows.map((row: any) => ({
     id: row.id,
@@ -219,14 +247,14 @@ app.get('/api/projects', asyncHandler(async (_, res) => {
 }));
 /* ---------- API PROJECTS (PROTEGIDA) ---------- */
 
-app.post('/api/caja', asyncHandler(async (req, res) => {
+app.post('/api/caja', asyncHandler(async (req: any, res: any) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ message: 'El nombre es obligatorio' });
   const created = await pgQuery('projects', 'INSERT', { name: name.trim() });
   res.status(201).json(created);
 }));
 
-app.post('/api/projects', asyncHandler(async (req, res) => {
+app.post('/api/projects', asyncHandler(async (req: any, res: any) => {
   const project: Project = req.body;
 
   const dbProject = {
@@ -245,7 +273,7 @@ app.post('/api/projects', asyncHandler(async (req, res) => {
   res.status(201).json(created);
 }));
 
-app.put('/api/projects/:id', asyncHandler(async (req, res) => {
+app.put('/api/projects/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
   const project: Project = req.body;
 
@@ -272,7 +300,7 @@ app.put('/api/projects/:id', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 
-app.delete('/api/projects/:id', asyncHandler(async (req, res) => {
+app.delete('/api/projects/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const result = await pgQuery('projects', 'UPDATE', {
@@ -286,7 +314,7 @@ app.delete('/api/projects/:id', asyncHandler(async (req, res) => {
 
   res.json({ message: 'Proyecto deshabilitado con éxito', project: result });
 }));
-app.get('/api/roles', asyncHandler(async (_, res) => {
+app.get('/api/roles', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('roles', 'SELECT');
 
   const roles = rows.map((row: any) => ({
@@ -297,7 +325,7 @@ app.get('/api/roles', asyncHandler(async (_, res) => {
   res.json(roles);
 }));
 /* ---------- API USERS ---------- */
-app.get('/api/users', asyncHandler(async (_, res) => {
+app.get('/api/users', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('users', 'SELECT_USERS');
 
   const users = rows.map((row: any) => ({
@@ -311,12 +339,12 @@ app.get('/api/users', asyncHandler(async (_, res) => {
 
   res.json(users);
 }));
-app.get('/api/dashboard', asyncHandler(async (_, res) => {
+app.get('/api/dashboard', asyncHandler(async (_: any, res: any) => {
   const data = await pgQuery('projects', 'SELECT_DASHBOARD');
   
   res.json(data);
 }));
-app.post('/api/users', asyncHandler(async (req, res) => {
+app.post('/api/users', asyncHandler(async (req: any, res: any) => {
   const user: User = req.body;
 
   const dbUser = {
@@ -330,7 +358,7 @@ app.post('/api/users', asyncHandler(async (req, res) => {
   res.status(201).json(created);
 }));
 
-app.put('/api/users/:id', asyncHandler(async (req, res) => {
+app.put('/api/users/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
   const user: User = req.body;
 
@@ -352,7 +380,7 @@ app.put('/api/users/:id', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 
-app.delete('/api/users/:id', asyncHandler(async (req, res) => {
+app.delete('/api/users/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const result = await pgQuery('users', 'UPDATE', {
@@ -366,14 +394,14 @@ app.delete('/api/users/:id', asyncHandler(async (req, res) => {
 
   res.json({ message: 'Usuario deshabilitado con éxito', user: result });
 }));
-app.get('/api/users/:id/projects', asyncHandler(async (req, res) => {
+app.get('/api/users/:id/projects', asyncHandler(async (req: any, res: any) => {
   const userId = parseInt(req.params.id, 10);
   const rows = await pgQuery('project_users', 'SELECT_PROJECT_USERS', { user_id: userId });
   const projectIds = (rows as any[]).map((r: any) => r.project_id);
   res.json(projectIds);
 }));
 
-app.put('/api/users/:id/projects', asyncHandler(async (req, res) => {
+app.put('/api/users/:id/projects', asyncHandler(async (req: any, res: any) => {
   const userId = parseInt(req.params.id, 10);
   const { projectIds } = req.body;
   await pool.query(`DELETE FROM project_users WHERE user_id = $1`, [userId]);
@@ -383,7 +411,7 @@ app.put('/api/users/:id/projects', asyncHandler(async (req, res) => {
   }
   res.json({ message: 'Proyectos actualizados' });
 }));
-app.get('/api/costaccounts', asyncHandler(async (req, res) => {
+app.get('/api/costaccounts', asyncHandler(async (req: any, res: any) => {
   // Capturamos el projectId de la URL (ej: ?projectId=10)
 const projectId = parseInt(req.query.projectId, 10);  
   // Pasamos el ID a pgQuery dentro del objeto 'data'
@@ -408,7 +436,7 @@ const projectId = parseInt(req.query.projectId, 10);
   }));
   res.json(results);
 }));
-app.post('/api/costaccounts', asyncHandler(async (req, res) => {
+app.post('/api/costaccounts', asyncHandler(async (req: any, res: any) => {
   const costAccount: CostAccount[] = req.body;
   const dataArray = Array.isArray(costAccount) ? costAccount : (costAccount ? [costAccount] : []);
 
@@ -425,7 +453,7 @@ app.post('/api/costaccounts', asyncHandler(async (req, res) => {
   res.status(201).json(created);
 }));
 
-app.put('/api/costaccounts/:id', asyncHandler(async (req, res) => {
+app.put('/api/costaccounts/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
   const costAccount: CostAccount = req.body;
 
@@ -446,13 +474,13 @@ app.put('/api/costaccounts/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.get('/api/infla/:projectId', asyncHandler(async (req, res) => {
+app.get('/api/infla/:projectId', asyncHandler(async (req: any, res: any) => {
   const projectId = parseInt(req.params.projectId, 10);
   const rows = await pgQuery('infla', 'SELECT_INFLA', { project_id: projectId });
   res.json(rows);
 }));
 
-app.put('/api/costaccounts/inflation-manual/:id', asyncHandler(async (req, res) => {
+app.put('/api/costaccounts/inflation-manual/:id', asyncHandler(async (req: any, res: any) => {
   const { projectId, percentage, user_id} = req.body;
   const factor = 1 + (Number(percentage) / 100);
 
@@ -474,7 +502,7 @@ app.put('/api/costaccounts/inflation-manual/:id', asyncHandler(async (req, res) 
 
   res.json(updated);
 }));
-app.delete('/api/costaccounts/:id', asyncHandler(async (req, res) => {
+app.delete('/api/costaccounts/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const result = await pgQuery('cost_accounts', 'UPDATE', {
@@ -490,7 +518,7 @@ app.delete('/api/costaccounts/:id', asyncHandler(async (req, res) => {
 }));
 /* ---------- API NIOS ---------- */
 /* ---------- API NIOS ---------- */
-app.post('/api/nios', asyncHandler(async (req, res) => {
+app.post('/api/nios', asyncHandler(async (req: any, res: any) => {
   const { nio, nioSuppliers } = req.body;
 
   if (!nio || !nioSuppliers || nioSuppliers.length === 0) {
@@ -550,7 +578,7 @@ app.post('/api/nios', asyncHandler(async (req, res) => {
     items: newcreatedSuppliers
   });
 }));
-app.put('/api/nios/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const { nioSuppliers,need_date,idsDelete} = req.body;
 
@@ -587,7 +615,7 @@ app.put('/api/nios/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.post('/api/nios_sell', asyncHandler(async (req, res) => {
+app.post('/api/nios_sell', asyncHandler(async (req: any, res: any) => {
   const { niosSupply, account_id } = req.body;
 
   // 1. Obtener el registro actual de la tabla supplies
@@ -634,7 +662,7 @@ app.post('/api/nios_sell', asyncHandler(async (req, res) => {
 
   res.status(201).json(createdNioSell);
 }));
-app.post('/api/nios_driver', asyncHandler(async (req, res) => {
+app.post('/api/nios_driver', asyncHandler(async (req: any, res: any) => {
   const {niosDriver,user} = req.body;
 
   const niosDriverSave = {
@@ -651,7 +679,7 @@ app.post('/api/nios_driver', asyncHandler(async (req, res) => {
   const updateNioSupply = await pgQuery('nios_supplies', 'UPDATE', niosSupplyUpdate);
   res.status(201).json(createdNioSell);
 }));
-app.post('/api/nios_defect', asyncHandler(async (req, res) => {
+app.post('/api/nios_defect', asyncHandler(async (req: any, res: any) => {
   const nios_defect: any = req.body;
   const created = await pgQuery('nios_defect', 'INSERT', nios_defect);
   let data={
@@ -662,7 +690,7 @@ app.post('/api/nios_defect', asyncHandler(async (req, res) => {
 
   res.status(201).json(created);
 }));
-app.put('/api/nios_defect/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_defect/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const { status } = req.body;
 
@@ -676,7 +704,7 @@ app.put('/api/nios_defect/:id', asyncHandler(async (req, res) => {
 
   res.status(201).json(created);
 }));
-app.post('/api/nios_defect_imput', asyncHandler(async (req, res) => {
+app.post('/api/nios_defect_imput', asyncHandler(async (req: any, res: any) => {
   try {
 
     const nios_defect: any = req.body;
@@ -730,7 +758,7 @@ app.post('/api/nios_defect_imput', asyncHandler(async (req, res) => {
     });
   }
 }));
-app.get('/api/nios_defect', asyncHandler(async (req, res) => {
+app.get('/api/nios_defect', asyncHandler(async (req: any, res: any) => {
 
   const limit = Number(req.query.limit) || 10;
   const offset = Number(req.query.offset) || 0;
@@ -742,7 +770,7 @@ app.get('/api/nios_defect', asyncHandler(async (req, res) => {
 
   res.status(200).json(results);
 }));
-app.get('/api/nios_defect_cost/:id', asyncHandler(async (req, res) => {
+app.get('/api/nios_defect_cost/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   console.log(id)
   const results = await pgQuery('cost_accounts_defect', 'SELECT_NIO_DEFECT_COST', {
@@ -750,7 +778,7 @@ app.get('/api/nios_defect_cost/:id', asyncHandler(async (req, res) => {
 
   res.status(200).json(results);
 }));
-app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_sent_seller/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const { nioSuppliers,user } = req.body;
 
@@ -780,7 +808,7 @@ app.put('/api/nios_sent_seller/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.put('/api/nios_sent_seller_true/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_sent_seller_true/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const { nioSuppliers,user } = req.body;
 
@@ -810,7 +838,7 @@ app.put('/api/nios_sent_seller_true/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.put('/api/nios_finish_presupuest/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_finish_presupuest/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const { nioSuppliers,user } = req.body;
 
@@ -842,7 +870,7 @@ app.put('/api/nios_finish_presupuest/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.put('/api/nios_finish_seller/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_finish_seller/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const dbNIO = {
     id,
@@ -855,7 +883,7 @@ app.put('/api/nios_finish_seller/:id', asyncHandler(async (req, res) => {
   }
   res.json(result);
 }));
-app.put('/api/nios_finish_logic/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_finish_logic/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const dbNIO = {
     id,
@@ -868,7 +896,7 @@ app.put('/api/nios_finish_logic/:id', asyncHandler(async (req, res) => {
   }
   res.json(result);
 }));
-app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_reception/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const { niosReception,user } = req.body;
   let ql=parseFloat(niosReception.quantity_less)
@@ -934,7 +962,7 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req, res) => {
   }
   res.json(result);
 }));
-app.get('/api/nios', asyncHandler(async (_, res) => {
+app.get('/api/nios', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('nios', 'SELECT_NIOS_FIRST');
   const nios = rows.map((row: any) => ({
     id: row.id,
@@ -952,7 +980,7 @@ app.get('/api/nios', asyncHandler(async (_, res) => {
   res.json(nios);
 
 }));
-app.get('/api/nios_history', asyncHandler(async (req, res) => {
+app.get('/api/nios_history', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (!authUser || authUser.role_id === 8) {
     return res.status(403).json({ message: 'Sin permisos' });
@@ -1003,7 +1031,7 @@ app.get('/api/nios_history', asyncHandler(async (req, res) => {
 
   res.json({ data, total });
 }));
-app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
+app.get('/api/nios_supplier', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('nios_supplies', 'SELECT_NIOS_SECOND');
   const nios_supplier = rows.map((row: any) => ({
     id: row.id,
@@ -1019,7 +1047,7 @@ app.get('/api/nios_supplier', asyncHandler(async (_, res) => {
   res.json(nios_supplier);
 
 }));
-app.get('/api/nios_sells', asyncHandler(async (_, res) => {
+app.get('/api/nios_sells', asyncHandler(async (_: any, res: any) => {
 const rows = await pgQuery('nios_sells', 'SELECT_NIOS_THIRD');
   const nios_sells = rows.map((row: any) => ({
     id: row.id,
@@ -1034,7 +1062,7 @@ const rows = await pgQuery('nios_sells', 'SELECT_NIOS_THIRD');
   }));
   res.json(nios_sells);
 }));
-app.get('/api/nios_driver', asyncHandler(async (_, res) => {
+app.get('/api/nios_driver', asyncHandler(async (_: any, res: any) => {
 const rows = await pgQuery('nios_driver', 'SELECT_NIOS_FOURTH');
   const nios_driver = rows.map((row: any) => ({
     nios_drivers_id: row.id,
@@ -1049,11 +1077,11 @@ const rows = await pgQuery('nios_driver', 'SELECT_NIOS_FOURTH');
   }));
   res.json(nios_driver);
 }));
-app.get('/api/nios_completed', asyncHandler(async (_, res) => {
+app.get('/api/nios_completed', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('nios_driver', 'SELECT_NIOS_COMPLETED');
   res.json(rows);
 }));
-app.put('/api/nios_finish_nio/:id', asyncHandler(async (req, res) => {
+app.put('/api/nios_finish_nio/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const dbNIO = {
     id,
@@ -1066,7 +1094,7 @@ app.put('/api/nios_finish_nio/:id', asyncHandler(async (req, res) => {
   }
   res.json(result);
 }));
-app.delete('/api/nios_supplier/:id', asyncHandler(async (req, res) => {
+app.delete('/api/nios_supplier/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const nioSupply = await pgQuery('nios_supplies', 'SELECT', { id });
@@ -1111,7 +1139,7 @@ app.delete('/api/nios_supplier/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'Insumo eliminado correctamente', result });
 }));
 
-app.delete('/api/nio/:id', asyncHandler(async (req, res) => {
+app.delete('/api/nio/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const result = await pgQuery('nios', 'UPDATE', {
@@ -1126,7 +1154,7 @@ app.delete('/api/nio/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'Nio deshabilitado con éxito', user: result });
 }));
 /* ---------- API SUPPLIES ---------- */
-app.get('/api/supplies', asyncHandler(async (_, res) => {
+app.get('/api/supplies', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('supplies', 'SELECT');
   const supplies = rows.map((row: any) => ({
     id: row.id,
@@ -1141,7 +1169,7 @@ app.get('/api/supplies', asyncHandler(async (_, res) => {
 
 }));
 
-app.post('/api/supplies', asyncHandler(async (req, res) => {
+app.post('/api/supplies', asyncHandler(async (req: any, res: any) => {
   const supply: Supply[] = req.body;
   const dataArray = Array.isArray(supply) ? supply : (supply ? [supply] : []);
 
@@ -1155,7 +1183,7 @@ app.post('/api/supplies', asyncHandler(async (req, res) => {
   res.status(201).json(created);
 }));
 
-app.put('/api/supplies/:id', asyncHandler(async (req, res) => {
+app.put('/api/supplies/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   const supply: Supply = req.body;
 
@@ -1175,7 +1203,7 @@ app.put('/api/supplies/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.delete('/api/supplies/:id', asyncHandler(async (req, res) => {
+app.delete('/api/supplies/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const result = await pgQuery('supplies', 'UPDATE', {
@@ -1191,7 +1219,7 @@ app.delete('/api/supplies/:id', asyncHandler(async (req, res) => {
 }));
 
 /* ---------- API CHOFERES ---------- */
-app.get('/api/drivers', asyncHandler(async (_, res) => {
+app.get('/api/drivers', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('drivers', 'SELECT');
   const drivers = rows.map((row: any) => ({
     id: row.id,
@@ -1206,7 +1234,7 @@ app.get('/api/drivers', asyncHandler(async (_, res) => {
 
 
 
-app.post('/api/drivers', asyncHandler(async (req, res) => {
+app.post('/api/drivers', asyncHandler(async (req: any, res: any) => {
   const driver: Driver = req.body;
 
   const dbDriver = {
@@ -1220,7 +1248,7 @@ app.post('/api/drivers', asyncHandler(async (req, res) => {
   res.status(201).json(created);
 }));
 
-app.put('/api/drivers/:id', asyncHandler(async (req, res) => {
+app.put('/api/drivers/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
   const driver: Driver = req.body;
 
@@ -1240,7 +1268,7 @@ app.put('/api/drivers/:id', asyncHandler(async (req, res) => {
 
   res.json(result);
 }));
-app.delete('/api/drivers/:id', asyncHandler(async (req, res) => {
+app.delete('/api/drivers/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
   const result = await pgQuery('drivers', 'UPDATE', {
@@ -1256,7 +1284,7 @@ app.delete('/api/drivers/:id', asyncHandler(async (req, res) => {
 }));
 
 /* ---------- API GEMINI ---------- */
-app.post('/api/gemini/extract-budget', asyncHandler(async (req, res) => {
+app.post('/api/gemini/extract-budget', asyncHandler(async (req: any, res: any) => {
   const { file } = req.body;
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -1303,7 +1331,7 @@ app.post('/api/gemini/extract-budget', asyncHandler(async (req, res) => {
   res.json(JSON.parse(response.text || '[]'));
 }));
 
-app.post('/api/gemini/extract-supplies', asyncHandler(async (req, res) => {
+app.post('/api/gemini/extract-supplies', asyncHandler(async (req: any, res: any) => {
   const { file } = req.body;
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -1350,7 +1378,7 @@ app.post('/api/gemini/extract-supplies', asyncHandler(async (req, res) => {
 }));
 
 /* ---------- API PAGOS INTANGIBLES ---------- */
-app.get('/api/intangible-payments', asyncHandler(async (_, res) => {
+app.get('/api/intangible-payments', asyncHandler(async (_: any, res: any) => {
   const rows = await pgQuery('intangible_payments', 'SELECT_INTANGIBLE_PAYMENTS');
   const dataArray = Array.isArray(rows) ? rows : [];
 
@@ -1373,7 +1401,7 @@ app.get('/api/intangible-payments', asyncHandler(async (_, res) => {
   res.json(result);
 }));
 
-app.post('/api/intangible-payments', uploadInvoices.single('document'), asyncHandler(async (req, res) => {  
+app.post('/api/intangible-payments', uploadInvoices.single('document'), asyncHandler(async (req: any, res: any) => {  
   const { descripcion, precio, obraImputarId, cuentaImputacionId } = req.body;
 const authUser = req.user as any;
   const created = await pgQuery('intangible_payments', 'INSERT', {
@@ -1397,7 +1425,7 @@ const authUser = req.user as any;
   res.status(201).json({ id: created.id });
 }));
 
-app.put('/api/intangible-payments/:id/aprobar', asyncHandler(async (req, res) => {
+app.put('/api/intangible-payments/:id/aprobar', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
 
   const payment = await pgQuery('intangible_payments', 'SELECT', { id });
@@ -1417,7 +1445,7 @@ app.put('/api/intangible-payments/:id/aprobar', asyncHandler(async (req, res) =>
   res.json({ message: 'Pago aprobado y consumo registrado en cuenta de costo' });
 }));
 
-app.put('/api/intangible-payments/:id/no-aprobar', asyncHandler(async (req, res) => {
+app.put('/api/intangible-payments/:id/no-aprobar', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
 
   const payment = await pgQuery('intangible_payments', 'SELECT', { id });
@@ -1431,7 +1459,7 @@ app.put('/api/intangible-payments/:id/no-aprobar', asyncHandler(async (req, res)
   res.json({ message: 'Pago marcado como no aprobado' });
 }));
 
-app.delete('/api/intangible-payments/:id', asyncHandler(async (req, res) => {
+app.delete('/api/intangible-payments/:id', asyncHandler(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
 
   const result = await pgQuery('intangible_payments', 'UPDATE', { id, is_enable: false });
@@ -1440,7 +1468,7 @@ app.delete('/api/intangible-payments/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'Pago eliminado con éxito' });
 }));
 /* ---------- API PAGOS CLIENTES ---------- */
-app.get('/api/client-payments', asyncHandler(async (req, res) => {
+app.get('/api/client-payments', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   let result;
   const baseQuery = `
@@ -1467,7 +1495,7 @@ app.get('/api/client-payments/documents/:filename', isAuthenticated, (req, res) 
   }
 });
 
-app.post('/api/client-payments', isAuthenticated, uploadClientPayments.single('document'), asyncHandler(async (req, res) => {
+app.post('/api/client-payments', isAuthenticated, uploadClientPayments.single('document'), asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (![1, 2, 3].includes(authUser.role_id)) return res.status(403).json({ message: 'Solo administrador, gerente o jefe de obra puede registrar pagos' });
 
@@ -1512,7 +1540,7 @@ const mapAdvanceRow = (row: any) => ({
   createdAt: row.created_at
 });
 
-app.get('/api/project-advances', asyncHandler(async (req, res) => {
+app.get('/api/project-advances', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   let result;
   const baseQuery = `
@@ -1536,7 +1564,7 @@ app.get('/api/project-advances/documents/:filename', isAuthenticated, (req, res)
   else res.status(404).json({ message: 'Documento no encontrado' });
 });
 
-app.post('/api/project-advances', isAuthenticated, uploadAdvances.single('document'), asyncHandler(async (req, res) => {
+app.post('/api/project-advances', isAuthenticated, uploadAdvances.single('document'), asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (![1, 2, 3].includes(authUser.role_id)) return res.status(403).json({ message: 'Solo administrador, gerente o jefe de obra puede registrar avances' });
   const { projectId, detail, advanceDate } = req.body;
@@ -1558,7 +1586,7 @@ app.post('/api/project-advances', isAuthenticated, uploadAdvances.single('docume
   res.status(201).json(mapAdvanceRow(full.rows[0]));
 }));
 
-app.delete('/api/project-advances/:id', isAuthenticated, asyncHandler(async (req, res) => {
+app.delete('/api/project-advances/:id', isAuthenticated, asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede eliminar avances' });
   const id = parseInt(req.params.id, 10);
@@ -1583,7 +1611,7 @@ const mapInvoiceRow = (row: any) => ({
   createdAt: row.created_at
 });
 
-app.get('/api/project-invoices', asyncHandler(async (req, res) => {
+app.get('/api/project-invoices', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   let result;
   const baseQuery = `
@@ -1607,7 +1635,7 @@ app.get('/api/project-invoices/documents/:filename', isAuthenticated, (req, res)
   else res.status(404).json({ message: 'Documento no encontrado' });
 });
 
-app.post('/api/project-invoices', isAuthenticated, uploadInvoices.single('document'), asyncHandler(async (req, res) => {
+app.post('/api/project-invoices', isAuthenticated, uploadInvoices.single('document'), asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (![1, 2, 3].includes(authUser.role_id)) return res.status(403).json({ message: 'Solo administrador, gerente o jefe de obra puede registrar facturas' });
   const { projectId, detail, invoiceDate } = req.body;
@@ -1628,7 +1656,7 @@ app.post('/api/project-invoices', isAuthenticated, uploadInvoices.single('docume
   `, [created.id]);
   res.status(201).json(mapInvoiceRow(full.rows[0]));
 }));
-app.delete('/api/project-invoices/:id', isAuthenticated, asyncHandler(async (req, res) => {
+app.delete('/api/project-invoices/:id', isAuthenticated, asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede eliminar facturas' });
   const id = parseInt(req.params.id, 10);
@@ -1681,7 +1709,7 @@ const mapConstructionBookRow = (row: any) => ({
   isEnable: row.is_enable,
 });
 
-app.get('/api/construction-book', asyncHandler(async (req, res) => {
+app.get('/api/construction-book', asyncHandler(async (req: any, res: any) => {
   const projectId = parseInt(req.query.projectId as string, 10);
   if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
   const result = await pool.query(`
@@ -1701,7 +1729,7 @@ app.get('/api/construction-book/documents/:filename', isAuthenticated, (req, res
   else res.status(404).json({ message: 'Documento no encontrado' });
 });
 
-app.post('/api/construction-book', uploadConstructionBook.single('document'), asyncHandler(async (req, res) => {
+app.post('/api/construction-book', uploadConstructionBook.single('document'), asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   const { projectId, folder, detail } = req.body;
   if (!projectId || !folder) return res.status(400).json({ message: 'projectId y folder son obligatorios' });
@@ -1724,7 +1752,7 @@ app.post('/api/construction-book', uploadConstructionBook.single('document'), as
   res.status(201).json(mapConstructionBookRow(full.rows[0]));
 }));
 
-app.post('/api/construction-book/generate-note', asyncHandler(async (req, res) => {
+app.post('/api/construction-book/generate-note', asyncHandler(async (req: any, res: any) => {
   const { orderId, documentIds, prompt } = req.body;
   if (!orderId) return res.status(400).json({ message: 'orderId requerido' });
   const ids = [Number(orderId), ...(Array.isArray(documentIds) ? documentIds : [])];
@@ -1770,7 +1798,7 @@ El usuario se encargará de guardar el texto en un archivo manualmente.`;
   res.json({ text: response.text || '' });
 }));
 
-app.delete('/api/construction-book/:id', isAuthenticated, asyncHandler(async (req, res) => {
+app.delete('/api/construction-book/:id', isAuthenticated, asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   if (authUser.role_id !== 1) return res.status(403).json({ message: 'Solo el administrador puede eliminar documentos' });
   const id = parseInt(req.params.id, 10);
@@ -1797,7 +1825,7 @@ const mapCertRow = (row: any) => ({
   isEnable: row.is_enable,
 });
 
-app.get('/api/projected-config', asyncHandler(async (req, res) => {
+app.get('/api/projected-config', asyncHandler(async (req: any, res: any) => {
   const projectId = parseInt(req.query.projectId as string, 10);
   if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
   const cfgResult = await pool.query(
@@ -1823,7 +1851,7 @@ app.get('/api/projected-config', asyncHandler(async (req, res) => {
   });
 }));
 
-app.put('/api/projected-config/:projectId', asyncHandler(async (req, res) => {
+app.put('/api/projected-config/:projectId', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   const projectId = parseInt(req.params.projectId, 10);
   const { durationMonths, startMonth, startYear, percentages } = req.body;
@@ -1881,7 +1909,7 @@ app.put('/api/projected-config/:projectId', asyncHandler(async (req, res) => {
   });
 }));
 
-app.get('/api/certificates', asyncHandler(async (req, res) => {
+app.get('/api/certificates', asyncHandler(async (req: any, res: any) => {
   const projectId = parseInt(req.query.projectId as string, 10);
   if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
   const result = await pool.query(`
@@ -1895,7 +1923,7 @@ app.get('/api/certificates', asyncHandler(async (req, res) => {
   res.json(result.rows.map(mapCertRow));
 }));
 
-app.post('/api/certificates', asyncHandler(async (req, res) => {
+app.post('/api/certificates', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   const { projectId, month, year, percentage } = req.body;
   if (!projectId || !month || !year || percentage === undefined)
@@ -1914,7 +1942,7 @@ app.post('/api/certificates', asyncHandler(async (req, res) => {
   res.status(201).json(mapCertRow(full.rows[0]));
 }));
 
-app.put('/api/certificates/:id', asyncHandler(async (req, res) => {
+app.put('/api/certificates/:id', asyncHandler(async (req: any, res: any) => {
   const authUser = req.user as any;
   const id = parseInt(req.params.id, 10);
   const { status, percentage } = req.body;
