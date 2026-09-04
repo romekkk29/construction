@@ -210,7 +210,7 @@ app.post('/public/send-email', cors(), asyncHandler(async (req: any, res: any) =
   }
 
   const mailOptions = {
-    from: `"Sistema LogiCost" <${process.env.EMAIL_SENT}>`,
+    from: `"Sistema de Notificaciones" <${process.env.EMAIL_SENT}>`,
     to: toList.join(','),
     subject: subject || 'Mensaje desde LogiCost',
     html: body
