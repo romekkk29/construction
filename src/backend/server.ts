@@ -1821,6 +1821,9 @@ const mapCertRow = (row: any) => ({
   approvedBy: row.approved_by,
   approvedByName: row.approved_by_name,
   approvedAt: row.approved_at,
+  annulledBy: row.annulled_by,
+  annulledByName: row.annulled_by_name,
+  annulledAt: row.annulled_at,
   createdAt: row.created_at,
   isEnable: row.is_enable,
 });
@@ -1913,10 +1916,11 @@ app.get('/api/certificates', asyncHandler(async (req: any, res: any) => {
   const projectId = parseInt(req.query.projectId as string, 10);
   if (!projectId) return res.status(400).json({ message: 'projectId requerido' });
   const result = await pool.query(`
-    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name
+    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name, uan.name AS annulled_by_name
     FROM certificates c
     LEFT JOIN users u ON c.created_by = u.id
     LEFT JOIN users ua ON c.approved_by = ua.id
+    LEFT JOIN users uan ON c.annulled_by = uan.id
     WHERE c.project_id = $1 AND c.is_enable = TRUE
     ORDER BY c.year DESC, c.month DESC
   `, [projectId]);
@@ -1933,10 +1937,11 @@ app.post('/api/certificates', asyncHandler(async (req: any, res: any) => {
     VALUES ($1, $2, $3, $4, 'pending', $5) RETURNING id
   `, [projectId, month, year, percentage, authUser.id]);
   const full = await pool.query(`
-    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name
+    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name, uan.name AS annulled_by_name
     FROM certificates c
     LEFT JOIN users u ON c.created_by = u.id
     LEFT JOIN users ua ON c.approved_by = ua.id
+    LEFT JOIN users uan ON c.annulled_by = uan.id
     WHERE c.id = $1
   `, [ins.rows[0].id]);
   res.status(201).json(mapCertRow(full.rows[0]));
@@ -1961,6 +1966,10 @@ app.put('/api/certificates/:id', asyncHandler(async (req: any, res: any) => {
       sets.push(`approved_by = $${p++}`); vals.push(authUser.id);
       sets.push(`approved_at = NOW()`);
     }
+    if (status === 'annulled') {
+      sets.push(`annulled_by = $${p++}`); vals.push(authUser.id);
+      sets.push(`annulled_at = NOW()`);
+    }
   }
   if (percentage !== undefined) { sets.push(`percentage = $${p++}`); vals.push(percentage); }
   vals.push(id);
@@ -1970,10 +1979,11 @@ app.put('/api/certificates/:id', asyncHandler(async (req: any, res: any) => {
     vals
   );
   const full = await pool.query(`
-    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name
+    SELECT c.*, u.name AS created_by_name, ua.name AS approved_by_name, uan.name AS annulled_by_name
     FROM certificates c
     LEFT JOIN users u ON c.created_by = u.id
     LEFT JOIN users ua ON c.approved_by = ua.id
+    LEFT JOIN users uan ON c.annulled_by = uan.id
     WHERE c.id = $1
   `, [upd.rows[0].id]);
   res.json(mapCertRow(full.rows[0]));

@@ -9,6 +9,7 @@ import {
   List,
   Settings,
   TrendingUp,
+  Ban,
 } from "lucide-react";
 import {
   LineChart,
@@ -27,7 +28,7 @@ import Modal from "../Styles/Modal";
 
 // ---- Local types (frontend only, no DB) ----
 
-type CertStatus = "pending" | "approved" | "rejected";
+type CertStatus = "pending" | "approved" | "rejected" | "annulled";
 
 interface Certificate {
   id: number;
@@ -41,6 +42,9 @@ interface Certificate {
   approvedBy?: number;
   approvedByName?: string;
   approvedAt?: string;
+  annulledBy?: number;
+  annulledByName?: string;
+  annulledAt?: string;
   createdAt: string;
   isEnable?: boolean;
 }
@@ -297,12 +301,29 @@ export default function AvanceCertificadoComponent() {
     }
   };
 
+  const handleAnnul = async (certId: number) => {
+    const cert = certificates.find((c: Certificate) => c.id === certId);
+    if (!cert) return;
+    const confirmed = window.confirm(
+      `¿Está seguro que desea anular el certificado de ${monthName(cert.month)} ${cert.year} (${cert.percentage}%)? Esta acción quedará registrada en el historial.`
+    );
+    if (!confirmed) return;
+    try {
+      const updated = await apiClient.certificates.update(certId, { status: "annulled" });
+      setCertificates((prev: Certificate[]) =>
+        prev.map((c: Certificate) => (c.id === certId ? updated : c))
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Build recharts data — calendar-based, cumulative for both series
   const buildChartData = (): { name: string; Proyectado?: number; Real?: number }[] => {
     if (!selectedProject) return [];
     const config = projectedConfigs[selectedProject.id];
     const approvedCerts = certificates.filter(
-      (c) => c.projectId === selectedProject.id && c.status === "approved"
+      (c: Certificate) => c.projectId === selectedProject.id && c.status === "approved"
     );
 
     if (!config && approvedCerts.length === 0) return [];
@@ -315,7 +336,7 @@ export default function AvanceCertificadoComponent() {
       for (let i = 0; i < config.durationMonths; i++) absSet.add(start + i);
     }
 
-    approvedCerts.forEach((c) => absSet.add(absMonth(c.year, c.month)));
+    approvedCerts.forEach((c: Certificate) => absSet.add(absMonth(c.year, c.month)));
 
     const sortedAbs = Array.from(absSet).sort((a, b) => a - b);
 
@@ -336,7 +357,7 @@ export default function AvanceCertificadoComponent() {
         }
       }
 
-      const cert = approvedCerts.find((c) => c.year === year && c.month === month);
+      const cert = approvedCerts.find((c: Certificate) => c.year === year && c.month === month);
       if (cert) {
         cumReal += cert.percentage;
         point.Real = Math.min(cumReal, 100);
@@ -349,10 +370,11 @@ export default function AvanceCertificadoComponent() {
   const chartData = buildChartData();
   const projConfig = selectedProject ? projectedConfigs[selectedProject.id] : null;
   const projectCerts = selectedProject
-    ? certificates.filter((c) => c.projectId === selectedProject.id)
+    ? certificates.filter((c: Certificate) => c.projectId === selectedProject.id)
     : [];
-  const pendingCount = projectCerts.filter((c) => c.status === "pending").length;
-  const approvedCount = projectCerts.filter((c) => c.status === "approved").length;
+  const pendingCount = projectCerts.filter((c: Certificate) => c.status === "pending").length;
+  const approvedCount = projectCerts.filter((c: Certificate) => c.status === "approved").length;
+  const annulledCount = projectCerts.filter((c: Certificate) => c.status === "annulled").length;
 
   // ---- Render: Project selection list ----
   if (!selectedProject) {
@@ -378,9 +400,10 @@ export default function AvanceCertificadoComponent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => {
-              const certs = certificates.filter((c) => c.projectId === project.id);
-              const approved = certs.filter((c) => c.status === "approved").length;
-              const pending = certs.filter((c) => c.status === "pending").length;
+              const certs = certificates.filter((c: Certificate) => c.projectId === project.id);
+              const approved = certs.filter((c: Certificate) => c.status === "approved").length;
+              const pending = certs.filter((c: Certificate) => c.status === "pending").length;
+              const annulled = certs.filter((c: Certificate) => c.status === "annulled").length;
               const hasConfig = !!projectedConfigs[project.id];
               return (
                 <div
@@ -404,6 +427,11 @@ export default function AvanceCertificadoComponent() {
                     {pending > 0 && (
                       <span className="px-2 py-0.5 bg-orange-50 text-orange-600 text-xs font-semibold rounded-full">
                         {pending} pendiente{pending !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {annulled > 0 && (
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-semibold rounded-full">
+                        {annulled} anulado{annulled !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
@@ -538,6 +566,11 @@ export default function AvanceCertificadoComponent() {
                     Certificados aprobados: {approvedCount}
                   </div>
                 )}
+                {annulledCount > 0 && (
+                  <div className="flex items-center gap-2 bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                    Anulados: {annulledCount}
+                  </div>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <div style={{ minWidth: Math.max(400, chartData.length * 60) }}>
@@ -621,7 +654,11 @@ export default function AvanceCertificadoComponent() {
                 .map((cert) => (
                   <div
                     key={cert.id}
-                    className="px-5 py-4 flex flex-wrap items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
+                    className={`px-5 py-4 flex flex-wrap items-center justify-between gap-4 transition-colors ${
+                      cert.status === "annulled"
+                        ? "bg-slate-50 opacity-70"
+                        : "hover:bg-slate-50"
+                    }`}
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="flex-shrink-0">
@@ -634,15 +671,36 @@ export default function AvanceCertificadoComponent() {
                         {cert.status === "pending" && (
                           <Clock className="h-5 w-5 text-orange-400" />
                         )}
+                        {cert.status === "annulled" && (
+                          <Ban className="h-5 w-5 text-slate-400" />
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-800 text-sm">
+                        <p className={`font-semibold text-sm ${cert.status === "annulled" ? "line-through text-slate-400" : "text-slate-800"}`}>
                           {monthName(cert.month)} {cert.year}
                         </p>
                         <p className="text-slate-500 text-xs mt-0.5">
                           Avance certificado:{" "}
-                          <span className="font-bold text-slate-700">{cert.percentage}%</span>
+                          <span className={`font-bold ${cert.status === "annulled" ? "text-slate-400" : "text-slate-700"}`}>
+                            {cert.percentage}%
+                          </span>
                         </p>
+                        {cert.status === "annulled" && cert.annulledByName && (
+                          <p className="text-slate-400 text-xs mt-0.5">
+                            Anulado por: <span className="font-medium">{cert.annulledByName}</span>
+                            {cert.annulledAt && (
+                              <> · {new Date(cert.annulledAt).toLocaleDateString("es-AR")}</>
+                            )}
+                          </p>
+                        )}
+                        {cert.status === "approved" && cert.approvedByName && (
+                          <p className="text-slate-400 text-xs mt-0.5">
+                            Aprobado por: <span className="font-medium">{cert.approvedByName}</span>
+                            {cert.approvedAt && (
+                              <> · {new Date(cert.approvedAt).toLocaleDateString("es-AR")}</>
+                            )}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -662,6 +720,11 @@ export default function AvanceCertificadoComponent() {
                           No Aprobado
                         </span>
                       )}
+                      {cert.status === "annulled" && (
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-full">
+                          Anulado
+                        </span>
+                      )}
 
                       {canApprove && cert.status === "pending" && (
                         <>
@@ -678,6 +741,15 @@ export default function AvanceCertificadoComponent() {
                             <XCircle className="h-3.5 w-3.5" /> No Aprobar
                           </button>
                         </>
+                      )}
+
+                      {canApprove && cert.status === "approved" && (
+                        <button
+                          onClick={() => handleAnnul(cert.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                        >
+                          <Ban className="h-3.5 w-3.5" /> Anular
+                        </button>
                       )}
                     </div>
                   </div>

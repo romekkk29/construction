@@ -332,10 +332,12 @@ CREATE TABLE IF NOT EXISTS certificates (
     month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
     year INTEGER NOT NULL,
     percentage NUMERIC(5, 2) NOT NULL CHECK (percentage BETWEEN 0 AND 100),
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'annulled')),
     created_by INTEGER REFERENCES users(id),
     approved_by INTEGER REFERENCES users(id),
     approved_at TIMESTAMP WITH TIME ZONE,
+    annulled_by INTEGER REFERENCES users(id),
+    annulled_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     is_enable BOOLEAN DEFAULT TRUE
