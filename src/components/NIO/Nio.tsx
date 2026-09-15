@@ -129,7 +129,7 @@ export default function NioComponent() {
             alert("sin permisos")
             return
         }
-      if(!item.quantity_less){
+      if(item.quantity_less === null || item.quantity_less === undefined || item.quantity_less === ''){
         alert("Cantidad faltante ?")
         return
       }

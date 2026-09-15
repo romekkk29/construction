@@ -917,7 +917,7 @@ app.put('/api/nios_reception/:id', asyncHandler(async (req: any, res: any) => {
     status: 5
   };
   const niosSellUpdate = {
-    id:niosReception.nios_sell_id,
+    id: niosReception.nios_sell_id ?? niosReception.id,
     status: 5
   };
   let result = await pgQuery('nios_driver', 'UPDATE', ql>0?dbNIO2:dbNIO);
