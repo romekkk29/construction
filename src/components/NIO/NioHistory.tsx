@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { apiClient } from "./../../api";
 import { useAuth } from "../Login/ProtectedRoute";
-import { Project } from "@/src/backend/types";
+import { Project, CostAccount } from "@/src/backend/types";
 import { History, ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -30,6 +30,8 @@ export default function NioHistoryComponent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [accounts, setAccounts] = useState<CostAccount[]>([]);
+  const [accountFilter, setAccountFilter] = useState<string>("");
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -78,6 +80,23 @@ export default function NioHistoryComponent() {
   }, [user]);
 
   useEffect(() => {
+    setAccountFilter("");
+    if (!selectedProjectId) {
+      setAccounts([]);
+      return;
+    }
+    const loadAccounts = async () => {
+      try {
+        const list = await apiClient.costAccounts.list(parseInt(selectedProjectId, 10));
+        setAccounts(list);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadAccounts();
+  }, [selectedProjectId]);
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
@@ -86,6 +105,7 @@ export default function NioHistoryComponent() {
           projectId,
           search: search.trim() || undefined,
           status: statusFilter || undefined,
+          accountId: accountFilter ? parseInt(accountFilter, 10) : undefined,
           limit: PAGE_SIZE,
           offset: page * PAGE_SIZE,
         });
@@ -98,7 +118,7 @@ export default function NioHistoryComponent() {
       }
     };
     load();
-  }, [selectedProjectId, search, statusFilter, page]);
+  }, [selectedProjectId, search, statusFilter, accountFilter, page]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -137,6 +157,17 @@ export default function NioHistoryComponent() {
             <option value="">Todas las obras</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <select
+            className="text-xs p-2 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-blue-400 outline-none disabled:opacity-50"
+            value={accountFilter}
+            onChange={(e) => { setAccountFilter(e.target.value); setPage(0); }}
+            disabled={!selectedProjectId || accounts.length === 0}
+          >
+            <option value="">Todas las cuentas</option>
+            {accounts.map(a => (
+              <option key={a.id} value={a.id}>{a.name ?? a.detail}{a.name && a.detail ? ` – ${a.detail}` : ''}</option>
             ))}
           </select>
         </div>

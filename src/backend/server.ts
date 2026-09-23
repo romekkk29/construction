@@ -124,7 +124,7 @@ passport.use(
         const email = profile.emails?.[0].value;
 
         if (!email) {
-          return done(new Error("No se pudo obtener el email de Google"), null);
+          return done(new Error("No se pudo obtener el email de Google"));
         }
         // Buscamos en tu DB usando tu función pgQuery
         const users = await pgQuery('users', 'SELECT_BY_EMAIL', {email});
@@ -143,7 +143,7 @@ passport.use(
           return done(null, false, { message: 'Tu email no está autorizado en el sistema.' });
         }
       } catch (error) {
-        return done(error, null);
+        return done(error as Error);
       }
     }
   )
@@ -170,7 +170,7 @@ app.get(
   }),
   (req, res) => {
     // Si llega aquí, es porque el email sí existía en la DB
-    res.redirect(process.env.FRONTEND_URL); 
+    res.redirect(process.env.FRONTEND_URL ?? '/'); 
   }
 );
 // Cerrar sesión
@@ -541,7 +541,7 @@ app.post('/api/nios', asyncHandler(async (req: any, res: any) => {
 
   // 3. Preparamos los proveedores/items inyectando el nios_id recién creado
   // Importante: Asegúrate de mapear los nombres de campos a los de tu tabla nios_supplies
-  const suppliersToInsert = nioSuppliers.map(item => ({
+  const suppliersToInsert = nioSuppliers.map((item: any) => ({
     nios_id: newNioId,           // El ID que vincula todo
     user_id: item.userId,
     supplies_id: item.supplyId,  // Ajustado a supplies_id según tu SQL
@@ -991,6 +991,7 @@ app.get('/api/nios_history', asyncHandler(async (req: any, res: any) => {
   const offset = Number(req.query.offset) || 0;
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : null;
   const status = typeof req.query.status === 'string' ? req.query.status.trim().toLowerCase() : null;
+  const accountId = req.query.accountId ? parseInt(req.query.accountId, 10) : null;
 
   const rows = await pgQuery('nios_supplies', 'SELECT_NIOS_HISTORY', {
     projectId,
@@ -998,6 +999,7 @@ app.get('/api/nios_history', asyncHandler(async (req: any, res: any) => {
     roleId: authUser.role_id,
     search,
     status,
+    accountId,
     limit,
     offset
   });
@@ -1206,6 +1208,19 @@ app.put('/api/supplies/:id', asyncHandler(async (req: any, res: any) => {
 app.delete('/api/supplies/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
 
+  // Verificar si el insumo está siendo usado en algún NIO
+  const inUseCheck = await pool.query(
+    `SELECT 1 FROM nios_supplies WHERE supplies_id = $1 AND is_enable = TRUE LIMIT 1`,
+    [id]
+  );
+
+  if (inUseCheck.rows.length > 0) {
+    return res.status(409).json({
+      error: 'supply_in_use',
+      message: 'Este insumo está siendo utilizado en uno o más NIOs y no puede ser eliminado.'
+    });
+  }
+
   const result = await pgQuery('supplies', 'UPDATE', {
     id,
     is_enable: false
@@ -1270,6 +1285,19 @@ app.put('/api/drivers/:id', asyncHandler(async (req: any, res: any) => {
 }));
 app.delete('/api/drivers/:id', asyncHandler(async (req: any, res: any) => {
   const { id } = req.params;
+
+  // Verificar si el chofer está siendo usado en algún NIO
+  const inUseCheck = await pool.query(
+    `SELECT 1 FROM nios_driver WHERE driver_id = $1 AND is_enable = TRUE LIMIT 1`,
+    [id]
+  );
+
+  if (inUseCheck.rows.length > 0) {
+    return res.status(409).json({
+      error: 'driver_in_use',
+      message: 'Este chofer está siendo utilizado en uno o más NIOs y no puede ser eliminado.'
+    });
+  }
 
   const result = await pgQuery('drivers', 'UPDATE', {
     id,

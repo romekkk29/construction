@@ -2,8 +2,9 @@ import React, {useState,useEffect,useRef} from "react";
 
 import { Role, User,Supply, Driver } from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { Plus, Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users } from "lucide-react";
+import { Plus, Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users,AlertTriangle } from "lucide-react";
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
+import Modal from "@/src/components/Styles/Modal";
 import * as XLSX from 'xlsx';
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
 import DriverFormModal from "./ChoferFormModal";
@@ -13,6 +14,7 @@ export default function DriverComponent({setIsChofer}) {
     const [driver, setDrivers] = useState<Driver[]>([]);
     const [isOpenDriverFormModel, setIsOpenDriverFormModel] = useState(false);
     const [isOpenDriverDeleteModel, setIsOpenDriverDeleteModel] = useState(false);
+    const [isOpenInUseModal, setIsOpenInUseModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
 
@@ -37,6 +39,12 @@ export default function DriverComponent({setIsChofer}) {
     const handleDeleteDriver = async (id:number) => {
         setLoading(true)
         const deleteResponse = await apiClient.drivers.delete(id);
+        if(deleteResponse.error === 'driver_in_use'){
+            setIsOpenDriverDeleteModel(false)
+            setIsOpenInUseModal(true)
+            setLoading(false)
+            return;
+        }
         if(deleteResponse.message){
             setDrivers(prev =>
             prev.filter(p => (p.id !== id))
@@ -176,6 +184,38 @@ export default function DriverComponent({setIsChofer}) {
                             itemName={" el chofer "+editingDriver?.name}
                             loading={loading}
                             ></ConfirmDeleteModal>
+
+                        <Modal
+                          isOpen={isOpenInUseModal}
+                          onClose={() => { setIsOpenInUseModal(false); setEditingDriver(null); }}
+                          title="No se puede eliminar"
+                          zIndex={50}
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
+                                <AlertTriangle className="h-6 w-6" />
+                              </div>
+                              <div>
+                                <p className="text-slate-700 font-semibold">
+                                  El chofer <span className="font-bold text-slate-900">{editingDriver?.name}</span> tiene usos en NIOs y no puede ser eliminado.
+                                </p>
+                                <p className="text-sm text-slate-500 mt-1">
+                                  Para poder eliminarlo, primero debés removerlo de todos los NIOs en los que aparece.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex justify-end pt-4 border-t">
+                              <button
+                                type="button"
+                                onClick={() => { setIsOpenInUseModal(false); setEditingDriver(null); }}
+                                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition"
+                              >
+                                Entendido
+                              </button>
+                            </div>
+                          </div>
+                        </Modal>
         </>
   );
 }

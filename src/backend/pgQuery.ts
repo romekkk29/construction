@@ -323,6 +323,7 @@ export const pgQuery = async (
               OR p.id IN (SELECT project_id FROM project_users WHERE user_id = $3 AND is_enable = TRUE)
             )
             AND ($4::text IS NULL OR $4::text = '' OR s.detail ILIKE '%' || $4::text || '%' OR n.id::text LIKE '%' || $4::text || '%')
+            AND ($8::integer IS NULL OR ns.account_id = $8::integer)
         ),
         counted AS (SELECT COUNT(*) AS total FROM base)
         SELECT c.total, b.*
@@ -332,7 +333,7 @@ export const pgQuery = async (
         ORDER BY b.nio_id DESC, b.supply_id DESC
         LIMIT $6 OFFSET $7
       `;
-      const rows = await query(sql, [projectId, roleId, userId, data?.search ?? null, data?.status ?? null, limit, offset]);
+      const rows = await query(sql, [projectId, roleId, userId, data?.search ?? null, data?.status ?? null, limit, offset, data?.accountId ?? null]);
       return rows;
     }
     case 'INSERT': {

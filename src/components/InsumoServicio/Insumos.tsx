@@ -2,8 +2,9 @@ import React, {useState,useEffect,useRef} from "react";
 
 import { Role, User,Supply } from "@/src/backend/types";
 import { apiClient } from './../../api';
-import { Plus,Save,Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users } from "lucide-react";
+import { Plus,Save,Edit, Trash2,Loader2,BrainCircuit,Search,Edit3,Clock,Users,AlertTriangle } from "lucide-react";
 import ConfirmDeleteModal from "@/src/components/Styles/DeleteModal";
+import Modal from "@/src/components/Styles/Modal";
 import * as XLSX from 'xlsx';
 import { extractBudgetData, extractSupplyData, FileData } from '@/src/services/geminiService';
 import InsumoFormModal from "./InsumoFormModal";
@@ -47,6 +48,7 @@ export default function SupliesComponent() {
     const [supplies, setSupplies] = useState<Supply[]>([]);
     const [isOpenInsumoFormModel, setIsOpenInsumoFormModel] = useState(false);
     const [isOpenInsumoDeleteModel, setIsOpenInsumoDeleteModel] = useState(false);
+    const [isOpenInUseModal, setIsOpenInUseModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState(""); 
     const [editingSupply, setEditingSupply] = useState<Supply | null>(null);
@@ -121,6 +123,12 @@ export default function SupliesComponent() {
     const handleDeleteSupply = async (id:number) => {
         setLoading(true)
         const deleteResponse = await apiClient.supplies.delete(id);
+        if(deleteResponse.error === 'supply_in_use'){
+            setIsOpenInsumoDeleteModel(false)
+            setIsOpenInUseModal(true)
+            setLoading(false)
+            return;
+        }
         if(deleteResponse.message){
             setSupplies(prev =>
             prev.filter(p => (p.id !== id))
@@ -366,6 +374,38 @@ export default function SupliesComponent() {
                           itemName={" el insumo o servicio "+editingSupply?.detail}
                           loading={loading}
                           ></ConfirmDeleteModal>
+
+                        <Modal
+                          isOpen={isOpenInUseModal}
+                          onClose={() => { setIsOpenInUseModal(false); setEditingSupply(null); }}
+                          title="No se puede eliminar"
+                          zIndex={50}
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
+                                <AlertTriangle className="h-6 w-6" />
+                              </div>
+                              <div>
+                                <p className="text-slate-700 font-semibold">
+                                  El insumo <span className="font-bold text-slate-900">{editingSupply?.detail}</span> tiene usos en NIOs y no puede ser eliminado.
+                                </p>
+                                <p className="text-sm text-slate-500 mt-1">
+                                  Para poder eliminarlo, primero debés removerlo de todos los NIOs en los que aparece.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex justify-end pt-4 border-t">
+                              <button
+                                type="button"
+                                onClick={() => { setIsOpenInUseModal(false); setEditingSupply(null); }}
+                                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition"
+                              >
+                                Entendido
+                              </button>
+                            </div>
+                          </div>
+                        </Modal>
  </>
   );
 }

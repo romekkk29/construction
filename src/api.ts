@@ -376,11 +376,12 @@ export const apiClient = {
       const res = await fetch(`${API_BASE_URL}/nios_defect_cost/${p.id}`);
       return res.json();
     },
-    listHistory: async (p: { projectId?: number; search?: string; status?: string; limit?: number; offset?: number }): Promise<{ data: any[]; total: number }> => {
+    listHistory: async (p: { projectId?: number; search?: string; status?: string; accountId?: number; limit?: number; offset?: number }): Promise<{ data: any[]; total: number }> => {
       const params = new URLSearchParams();
       if (p.projectId) params.set('projectId', String(p.projectId));
       if (p.search) params.set('search', p.search);
       if (p.status) params.set('status', p.status);
+      if (p.accountId) params.set('accountId', String(p.accountId));
       params.set('limit', String(p.limit ?? 10));
       params.set('offset', String(p.offset ?? 0));
       const res = await fetch(`${API_BASE_URL}/nios_history?${params.toString()}`);
@@ -404,7 +405,7 @@ export const apiClient = {
       }
       return res.json();
     },
-    delete: async (id: number): Promise<{ message: string }> => {
+    delete: async (id: number): Promise<{ message?: string; error?: string }> => {
       const res = await fetch(`${API_BASE_URL}/supplies/${id}`, {
         method: 'DELETE',
       });
@@ -469,7 +470,7 @@ export const apiClient = {
       }
       return res.json();
     },
-    delete: async (id: number): Promise<{ message: string }> => {
+    delete: async (id: number): Promise<{ message?: string; error?: string }> => {
       const res = await fetch(`${API_BASE_URL}/drivers/${id}`, {
         method: 'DELETE',
       });
